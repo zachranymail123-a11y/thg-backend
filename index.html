@@ -3,18 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TheHardwareGuru</title>
+<title>TheHardwareGuru | Gaming Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 <style>
 body{margin:0;font-family:Orbitron,Arial;background:#0b0f14;color:#fff;text-align:center}
-header{padding:40px 20px;background:linear-gradient(90deg,#0f172a,#020617)}
+header{padding:40px 20px;background:linear-gradient(90deg,#111827,#020617)}
 h1{font-size:42px;margin:0;color:#00ffcc}
 .container{padding:40px 20px;max-width:900px;margin:auto}
-.btn{display:inline-block;margin:10px;padding:14px 26px;border-radius:10px;text-decoration:none;color:#fff;font-weight:bold}
-.kick{background:#00ff88;color:#000}
-.yt{background:#ff0033}
-.discord{background:#5865F2}
-.box{margin:20px auto;padding:20px;background:#020617;border:1px solid #00ffcc33;border-radius:14px;max-width:700px}
+.btn{display:inline-block;margin:10px;padding:14px 26px;border-radius:10px;text-decoration:none;color:#000;font-weight:bold;background:#00ff88}
+.box{margin:20px auto;padding:20px;background:#111827;border-radius:12px}
 .status{font-size:20px;margin:20px}
 .online{color:#00ff88}
 .offline{color:#888}
@@ -23,15 +20,13 @@ h1{font-size:42px;margin:0;color:#00ffcc}
 <body>
 <header>
 <h1>THEHARDWAREGURU</h1>
-<div class="status" id="status">Načítám...</div>
-<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">Kick</a>
-<a class="btn yt" href="https://youtube.com/@thehardwareguru" target="_blank">YouTube</a>
-<a class="btn discord" href="#" target="_blank">Discord</a>
+<div id="status" class="status">Načítám...</div>
+<a class="btn" href="https://kick.com/thehardwareguru" target="_blank">WATCH LIVE ON KICK</a>
+<a class="btn" href="https://youtube.com/@thehardwareguru" target="_blank">YouTube</a>
 </header>
 <div class="container">
 <div class="box"><h2>Aktuální hra</h2><div id="game">Načítám...</div></div>
-<div class="box"><h2>Popis hry</h2><div id="desc"></div></div>
-<div class="box"><h2>YouTube</h2><div id="yt"></div></div>
+<div class="box"><h2>Popis</h2><div id="desc"></div></div>
 </div>
 <script>
 async function load(){
@@ -43,12 +38,9 @@ async function load(){
      document.getElementById("game").innerText="Stream je offline.";
      return;
    }
-   document.getElementById("status").innerHTML='<span class="online">ONLINE</span>';
+   document.getElementById("status").innerHTML='<span class="online">LIVE NOW</span>';
    document.getElementById("game").innerText=d.title;
    document.getElementById("desc").innerText=d.description||"";
-   if(d.youtube){
-     document.getElementById("yt").innerHTML='<a class="btn yt" href="'+d.youtube+'" target="_blank">Video</a>';
-   }
  }catch{
    document.getElementById("status").innerHTML='<span class="offline">OFFLINE</span>';
  }

@@ -7,18 +7,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 let pool = null;
-
-if (process.env.DATABASE_URL) {
+if(process.env.DATABASE_URL){
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    connectionString:process.env.DATABASE_URL,
+    ssl:{rejectUnauthorized:false}
   });
 }
 
 async function q(sql,p=[]){
   if(!pool) return {rows:[]};
-  try{ return await pool.query(sql,p); }
-  catch{ return {rows:[]}; }
+  try{return await pool.query(sql,p)}catch{return {rows:[]}}
 }
 
 async function init(){
@@ -29,7 +27,6 @@ async function init(){
     youtube TEXT,
     updated TIMESTAMP DEFAULT NOW()
   )`);
-
   await q(`CREATE TABLE IF NOT EXISTS articles(
     id SERIAL PRIMARY KEY,
     title TEXT,
@@ -40,31 +37,42 @@ async function init(){
 }
 init();
 
-const games=["GTA 6","Cyberpunk 2077","Warzone","Minecraft","Starfield","Elden Ring","Helldivers 2","Fortnite","Diablo 4","Baldur's Gate 3"];
-const topics=["guide","tips","best settings","build","how to play","update","expansion","review","walkthrough"];
+const games=["GTA 6","Cyberpunk 2077","Warzone","Starfield","Elden Ring","Helldivers 2","Baldur's Gate 3","Silent Hill","Alan Wake 2","Red Dead Redemption 2"];
+const topics=["complete guide","story playthrough","first impressions","best settings","gameplay overview","review","tips and tricks","beginner guide"];
 
-function rand(a){ return a[Math.floor(Math.random()*a.length)] }
+function rand(a){return a[Math.floor(Math.random()*a.length)]}
 
-async function generateSix(){
-  for(let i=0;i<6;i++){
-    const title=`${rand(games)} ${rand(topics)} ${Date.now()} ${i}`;
-    const slug=slugify(title,{lower:true,strict:true});
-    const article=`${title}
-
-Tipy pro hráče.
-Buildy.
-Novinky.
-Upcoming content.
-Podobné hry.
-Streaming guide.`;
-
-    await q("INSERT INTO articles(title,slug,article) VALUES($1,$2,$3) ON CONFLICT (slug) DO NOTHING",[title,slug,article]);
-  }
+async function generateArticle(lang){
+  const game=rand(games);
+  const topic=rand(topics);
+  const title=lang==="cz"
+    ? `${game} ${topic} 2026 CZ`
+    : `${game} ${topic} 2026`;
+  const slug=slugify(title+"-"+Date.now(),{lower:true,strict:true});
+  const intro=lang==="cz"
+    ? `${game} patří mezi nejzajímavější hry roku 2026. V tomto článku najdeš přehled, tipy a důvody, proč sledovat live gameplay.`
+    : `${game} is one of the most talked about games of 2026. Here you will find an overview, tips and reasons to watch live gameplay.`;
+  const article=`
+<h2>${title}</h2>
+<p>${intro}</p>
+<h3>Gameplay Overview</h3>
+<p>${game} nabízí silný příběh, atmosféru a akci.</p>
+<h3>Beginner Tips</h3>
+<p>Zaměř se na správné tempo a sleduj detaily příběhu.</p>
+<h3>Why Watch Live</h3>
+<p>Sleduj TheHardwareGuru live pro autentický gameplay bez střihu.</p>
+<div style="margin:30px;padding:20px;background:#111827;border-radius:10px;text-align:center;">
+<h3>🎮 WATCH LIVE GAMEPLAY</h3>
+<a href="https://kick.com/thehardwareguru" style="display:inline-block;padding:12px 20px;background:#00ff88;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">WATCH LIVE ON KICK</a>
+</div>
+`;
+  await q("INSERT INTO articles(title,slug,article) VALUES($1,$2,$3) ON CONFLICT (slug) DO NOTHING",[title,slug,article]);
 }
 
 app.get("/cron/daily",async(req,res)=>{
-  await generateSix();
-  res.send("generated 6");
+  for(let i=0;i<6;i++) await generateArticle("cz");
+  for(let i=0;i<6;i++) await generateArticle("en");
+  res.send("generated 12");
 });
 
 app.get("/api/live",async(req,res)=>{
@@ -91,19 +99,14 @@ app.get("/top/:slug",async(req,res)=>{
 <link rel="canonical" href="https://thehardwareguru.cz/top/${a.slug}">
 <style>
 body{background:#0b0f14;color:#fff;font-family:Arial;padding:40px;max-width:900px;margin:auto}
-.btn{display:inline-block;margin:10px;padding:12px 20px;background:#00ff88;color:#000;text-decoration:none;border-radius:8px}
+a{color:#00ff88}
 </style></head><body>
-<h1>${a.title}</h1>
-<div>${a.article.replace(/\n/g,"<br>")}</div>
-<br>
-<a class="btn" href="https://kick.com/thehardwareguru">Kick</a>
-<a class="btn" href="https://youtube.com/@thehardwareguru">YouTube</a>
-<a class="btn" href="/">Zpět</a>
+${a.article}
 </body></html>`);
 });
 
 app.get("/sitemap.xml",async(req,res)=>{
-  const r=await q("SELECT slug, created_at FROM articles ORDER BY created_at DESC LIMIT 5000");
+  const r=await q("SELECT slug, created_at FROM articles ORDER BY created_at DESC");
   const urls=r.rows.map(x=>`
 <url>
 <loc>https://thehardwareguru.cz/top/${x.slug}</loc>
@@ -116,6 +119,4 @@ ${urls}
 </urlset>`);
 });
 
-app.listen(PORT,"0.0.0.0",()=>{
-  console.log("SERVER RUNNING ON PORT",PORT);
-});
+app.listen(PORT,"0.0.0.0",()=>console.log("SERVER RUNNING ON PORT",PORT));
