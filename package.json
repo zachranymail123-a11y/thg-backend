@@ -1,7 +1,6 @@
 {
-  "name": "guru-backend",
-  "version": "4.0.0",
-  "type": "module",
+  "name": "thg-backend-stable",
+  "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
