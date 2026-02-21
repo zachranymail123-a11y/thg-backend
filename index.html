@@ -59,7 +59,16 @@ async function loadGame(){
 
   document.getElementById("gameTitle").innerText=live.title;
 
-  const g=await fetch(API+"/api/game/"+encodeURIComponent(live.title));
+  let cleanTitle = live.title
+  .replace(/LIVE/gi, "")
+  .replace(/\|.*$/, "")
+  .replace(/[🔥🎮⭐✨]/g, "")
+  .replace(/&amp;/g, "&")
+  .trim();
+
+document.getElementById("gameTitle").innerText = cleanTitle;
+
+const g = await fetch(API + "/api/game/" + encodeURIComponent(cleanTitle));
   const data=await g.json();
 
   document.getElementById("gameDesc").innerHTML=data.description;
