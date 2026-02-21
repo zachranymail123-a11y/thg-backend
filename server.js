@@ -35,15 +35,33 @@ async function safeQuery(q, params = []) {
 
 // LIVE
 app.get("/api/live", async (req, res) => {
-  const r = await safeQuery(
-    "SELECT title, article FROM articles ORDER BY id DESC LIMIT 1"
-  );
+  try {
 
-  if (!r.rows.length) {
-    return res.json({
-      live: false,
-      title: "Žádná hra zatím",
-      description: "Čekám na první článek."
+    const r = await pool.query(
+      "SELECT title, article FROM articles ORDER BY id DESC LIMIT 1"
+    );
+
+    if (!r.rows.length) {
+      return res.json({
+        live:false,
+        title:"Žádná hra zatím",
+        description:"Popis se generuje..."
+      });
+    }
+
+    const game = r.rows[0];
+
+    res.json({
+      live:true,
+      title:game.title,
+      description:game.article || "Popis se generuje..."
+    });
+
+  } catch(e){
+    res.json({
+      live:false,
+      title:"Chyba DB",
+      description:"DB error"
     });
   }
 
