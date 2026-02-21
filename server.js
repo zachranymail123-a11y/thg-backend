@@ -19,44 +19,14 @@ const pool = new Pool({
  ssl: { rejectUnauthorized: false }
 });
 
-// ---------- INIT DB ----------
-async function initDB(){
- await pool.query(`
- CREATE TABLE IF NOT EXISTS games(
-  id SERIAL PRIMARY KEY,
-  slug TEXT UNIQUE,
-  title TEXT,
-  description TEXT,
-  article TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
- );
- `);
-
- await pool.query(`
- CREATE TABLE IF NOT EXISTS articles(
-  id SERIAL PRIMARY KEY,
-  slug TEXT UNIQUE,
-  title TEXT,
-  lang TEXT,
-  content TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
- );
- `);
-}
-
-// ---------- HELPERS ----------
 function slugify(t){
- return t.toLowerCase()
- .replace(/[^a-z0-9]+/g,"-")
- .replace(/(^-|-$)/g,"");
+ return t.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
 }
 
-// ---------- AI GENERATOR ----------
 async function aiArticle(title,lang){
-
  const prompt = lang==="cz"
- ? `Napiš dlouhý profesionální SEO gaming článek česky o: ${title}. Minimálně 1200 slov.`
- : `Write long professional SEO gaming article about: ${title}. 1200+ words.`;
+ ? `Napiš profesionální strukturovaný SEO článek o hře ${title}. Používej nadpisy H2, seznamy a sekce.`
+ : `Write structured gaming SEO article about ${title}. Use headings and sections.`;
 
  const r = await fetch("https://api.openai.com/v1/responses",{
   method:"POST",
@@ -74,112 +44,122 @@ async function aiArticle(title,lang){
  return data.output?.[0]?.content?.[0]?.text || title;
 }
 
-// ---------- GAME PAGE ----------
-app.get("/api/game/:title", async(req,res)=>{
+// ---------- ARTICLE PAGE DESIGN ----------
+function renderPage(title, content){
 
- const raw = decodeURIComponent(req.params.title);
- const clean = raw.replace(/LIVE|CZ|Gameplay|🔥/gi,"").trim();
- const slug = slugify(clean);
+return `
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${title} | TheHardwareGuru</title>
 
- let g = await pool.query("SELECT * FROM games WHERE slug=$1",[slug]);
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
- if(g.rows.length>0){
-  res.json(g.rows[0]);
-  return;
- }
+<style>
+body{margin:0;background:#05070f;color:#fff;font-family:Inter;line-height:1.7}
 
- const article = await aiArticle(clean,"cz");
- const desc = article.substring(0,300);
+.hero{
+background:linear-gradient(135deg,#00ffe1,#0066ff);
+padding:40px 20px;
+text-align:center;
+box-shadow:0 0 80px rgba(0,255,225,.3);
+}
+.hero h1{margin:0;font-family:Orbitron;font-size:2.2rem;color:#000}
 
- await pool.query(
-  "INSERT INTO games(slug,title,description,article) VALUES($1,$2,$3,$4)",
-  [slug,clean,desc,article]
- );
+.cta{
+margin-top:20px;
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+justify-content:center;
+}
+.cta a{
+padding:14px 22px;
+border-radius:12px;
+font-weight:700;
+text-decoration:none;
+}
+.kick{background:#000;color:#00ffe1;border:2px solid #00ffe1}
+.yt{background:#ff0000;color:#fff}
+.dc{background:#5865F2;color:#fff}
 
- const saved = await pool.query("SELECT * FROM games WHERE slug=$1",[slug]);
- res.json(saved.rows[0]);
-});
+.wrap{max-width:900px;margin:60px auto;padding:20px}
 
-// ---------- DAILY AUTOPILOT ----------
-app.get("/cron/daily", async(req,res)=>{
+h1{font-family:Orbitron}
+h2{color:#00ffe1;margin-top:40px}
+p{opacity:.95;font-size:1.05rem}
 
- const year = new Date().getFullYear();
+.bottom{
+margin-top:60px;
+padding:30px;
+border:1px solid #00ffe1;
+border-radius:18px;
+text-align:center;
+background:#020617;
+}
 
- const topics = [
-  `Nejlepší hry ${year}`,
-  `Nové hry ${year}`,
-  `Nejočekávanější hry ${year+1}`,
-  `Best games ${year}`,
-  `New games ${year}`,
-  `Upcoming games ${year+1}`
- ];
+.bottom a{
+display:inline-block;
+margin:10px;
+padding:16px 28px;
+border-radius:14px;
+text-decoration:none;
+font-weight:700;
+background:linear-gradient(45deg,#00ffe1,#00aaff);
+color:#000;
+}
 
- for(const t of topics){
+</style>
+</head>
 
-  const lang = t.match(/Best|New|Upcoming/) ? "en" : "cz";
-  const slug = slugify(t+"-"+lang);
+<body>
 
-  const exist = await pool.query("SELECT * FROM articles WHERE slug=$1",[slug]);
-  if(exist.rows.length>0) continue;
+<div class="hero">
+<h1>${title}</h1>
+<div class="cta">
+<a class="kick" href="https://kick.com/thehardwareguru" target="_blank">🔴 SLEDOVAT LIVE</a>
+<a class="yt" href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
+<a class="dc" href="https://discord.com/invite/n7xThr8" target="_blank">Discord</a>
+</div>
+</div>
 
-  const content = await aiArticle(t,lang);
+<div class="wrap">
+${content.replace(/\n/g,"<br>")}
 
-  await pool.query(
-   "INSERT INTO articles(slug,title,lang,content) VALUES($1,$2,$3,$4)",
-   [slug,t,lang,content]
-  );
- }
+<div class="bottom">
+<h2>Sleduj gameplay živě</h2>
+<a href="https://kick.com/thehardwareguru" target="_blank">▶ OTEVŘÍT STREAM</a>
+</div>
 
- res.send("DAILY GENERATED OK");
-});
+</div>
 
-// ---------- SEO PAGE ----------
+</body>
+</html>
+`;
+}
+
+// ---------- TOP ARTICLE ----------
 app.get("/top/:slug", async(req,res)=>{
- const a = await pool.query("SELECT * FROM articles WHERE slug=$1",[req.params.slug]);
- if(a.rows.length===0){ res.send("nenalezeno"); return; }
+ const slug = req.params.slug;
 
- const art = a.rows[0];
+ const r = await pool.query("SELECT * FROM articles WHERE slug=$1",[slug]);
+ if(r.rows.length===0){ res.send("nenalezeno"); return;}
 
- res.send(`
- <!DOCTYPE html>
- <html lang="${art.lang}">
- <head>
- <meta charset="UTF-8">
- <title>${art.title}</title>
- <meta name="description" content="${art.title}">
- </head>
- <body style="background:#05070f;color:white;font-family:Arial;max-width:900px;margin:60px auto;line-height:1.7">
- <h1>${art.title}</h1>
- <div>${art.content.replace(/\\n/g,"<br>")}</div>
- <p><a href="https://thehardwareguru.cz">← zpět na stream</a></p>
- </body>
- </html>
- `);
+ const a = r.rows[0];
+ res.send(renderPage(a.title,a.content));
 });
 
-// ---------- SITEMAP ----------
-app.get("/sitemap.xml", async(req,res)=>{
+// ---------- GAME ----------
+app.get("/hra/:slug", async(req,res)=>{
+ const slug=req.params.slug;
 
- const g = await pool.query("SELECT slug FROM games");
- const a = await pool.query("SELECT slug FROM articles");
+ const r=await pool.query("SELECT * FROM games WHERE slug=$1",[slug]);
+ if(r.rows.length===0){res.send("nenalezeno");return;}
 
- let xml=`<?xml version="1.0" encoding="UTF-8"?>
- <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
-
- g.rows.forEach(r=>{
-  xml+=`<url><loc>https://thehardwareguru.cz/hra/${r.slug}</loc></url>`;
- });
-
- a.rows.forEach(r=>{
-  xml+=`<url><loc>https://thehardwareguru.cz/top/${r.slug}</loc></url>`;
- });
-
- xml+="</urlset>";
-
- res.header("Content-Type","application/xml");
- res.send(xml);
+ const g=r.rows[0];
+ res.send(renderPage(g.title,g.article));
 });
 
-initDB().then(()=>{
- app.listen(PORT,()=>console.log("THG FINAL BACKEND RUNNING "+PORT));
-});
+app.listen(PORT,()=>console.log("ARTICLE DESIGN UPGRADE READY"));

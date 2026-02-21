@@ -1,7 +1,7 @@
 
 {
- "name":"thg-final",
- "version":"5.0.0",
+ "name":"thg-design",
+ "version":"1.0.0",
  "type":"module",
  "main":"server.js",
  "scripts":{"start":"node server.js"},
