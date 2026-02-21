@@ -17,9 +17,9 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// === AUTO DB FIX ===
 async function initDB(){
   try{
-
     await pool.query(`
       CREATE TABLE IF NOT EXISTS articles(
         id SERIAL PRIMARY KEY,
@@ -31,50 +31,50 @@ async function initDB(){
     `);
 
     await pool.query(`
-      ALTER TABLE articles
-      ADD COLUMN IF NOT EXISTS article TEXT;
+      ALTER TABLE articles ADD COLUMN IF NOT EXISTS article TEXT;
     `);
 
-    console.log("DB AUTO FIX OK");
-
+    console.log("DB READY");
   }catch(e){
     console.log("DB INIT ERROR", e.message);
   }
 }
-
 initDB();
 
+// ROOT
 app.get("/", (req,res)=>{
-  res.send("THG BACKEND OK");
+  res.send("THG BACKEND RUNNING");
 });
 
-async function safeQuery(q,p=[]){
-  try{
-    return await pool.query(q,p);
-  }catch(e){
-    console.log("DB ERR",e.message);
-    return {rows:[]};
-  }
-}
-
+// LIVE GAME
 app.get("/api/live", async (req,res)=>{
-  const r = await safeQuery("SELECT title, article FROM articles ORDER BY id DESC LIMIT 1");
+  try{
+    const r = await pool.query("SELECT title, article FROM articles ORDER BY id DESC LIMIT 1");
 
-  if(!r.rows.length){
-    return res.json({
+    if(!r.rows.length){
+      return res.json({
+        live:false,
+        title:"Žádná hra zatím",
+        description:"Popis se generuje..."
+      });
+    }
+
+    res.json({
+      live:true,
+      title:r.rows[0].title,
+      description:r.rows[0].article || ""
+    });
+
+  }catch(e){
+    res.json({
       live:false,
-      title:"Žádná hra zatím",
-      description:"Popis se generuje..."
+      title:"DB chyba",
+      description:"DB error"
     });
   }
-
-  res.json({
-    live:true,
-    title:r.rows[0].title,
-    description:r.rows[0].article || "Popis se generuje..."
-  });
 });
 
+// SLUG
 function slugify(t){
   return t.toLowerCase()
   .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
@@ -82,6 +82,7 @@ function slugify(t){
   .replace(/(^-|-$)/g,"");
 }
 
+// TOPICS
 function topics(){
   const d=new Date();
   const m=d.toLocaleString("cs",{month:"long"});
@@ -89,6 +90,7 @@ function topics(){
   const g=["RPG","FPS","open world","survival","stealth","horror"];
   const b=["GTA","Skyrim","Elden Ring","Witcher","Cyberpunk"];
   const pick=a=>a[Math.floor(Math.random()*a.length)];
+
   return [
     `Nejlepší ${pick(g)} hry ${m} ${y}`,
     `Nové hry ${m} ${y}`,
@@ -99,29 +101,55 @@ function topics(){
   ];
 }
 
+// SAVE
 async function save(title){
-  const slug=slugify(title);
-  const ex=await safeQuery("SELECT id FROM articles WHERE slug=$1",[slug]);
+  const slug = slugify(title);
+
+  const ex = await pool.query("SELECT id FROM articles WHERE slug=$1",[slug]);
   if(ex.rows.length) return;
 
-  const content=`
-<h1>${title}</h1>
-<p>Gaming článek a gameplay.</p>
-<p><a href="https://kick.com/thehardwareguru" target="_blank">▶ Sleduj stream</a></p>
-`;
+  const content = `<h1>${title}</h1>
+<p>Nejnovější gameplay a info.</p>
+<p><a href="https://kick.com/thehardwareguru" target="_blank">▶ Sleduj stream</a></p>`;
 
-  await safeQuery(
+  await pool.query(
     "INSERT INTO articles(title,slug,article,created_at) VALUES($1,$2,$3,NOW())",
     [title,slug,content]
   );
 }
 
+// CRON
 app.get("/cron/daily", async (req,res)=>{
-  const t=topics();
-  for(const x of t) await save(x);
+  const t = topics();
+  for(const x of t){
+    await save(x);
+  }
   res.send("OK generated "+t.length);
 });
 
+// 🔥 SITEMAP FIX
+app.get("/sitemap.xml", async (req,res)=>{
+  try{
+    const r = await pool.query("SELECT slug FROM articles ORDER BY id DESC LIMIT 5000");
+
+    let urls = "";
+    r.rows.forEach(x=>{
+      urls += `<url><loc>https://thehardwareguru.cz/top/${x.slug}</loc></url>`;
+    });
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`;
+
+    res.header("Content-Type","application/xml");
+    res.send(xml);
+
+  }catch(e){
+    res.send("sitemap error");
+  }
+});
+
 app.listen(PORT,()=>{
-  console.log("THG AUTO BACKEND RUNNING",PORT);
+  console.log("THG BACKEND RUNNING",PORT);
 });
