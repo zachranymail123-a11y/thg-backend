@@ -54,7 +54,6 @@ return `<!DOCTYPE html><html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${a.title}</title>
-<meta name="description" content="${a.title} guide">
 <link rel="canonical" href="https://thehardwareguru.cz/top/${a.slug}">
 <style>
 body{background:#0b0f14;color:#fff;font-family:Arial;padding:40px;max-width:900px;margin:auto}
@@ -91,20 +90,43 @@ ${urls}
 </urlset>`);
 });
 
-function randomGame(){
- const games=["GTA 6","Cyberpunk 2077","Warzone","Minecraft","Starfield","Elden Ring","Helldivers 2"];
- return games[Math.floor(Math.random()*games.length)];
-}
+const topics=[
+"best settings",
+"how to play",
+"tips and tricks",
+"beginner guide",
+"pro guide",
+"build guide",
+"2026 update",
+"new expansion",
+"release info",
+"gameplay guide"
+];
+
+const games=[
+"GTA 6","Cyberpunk 2077","Warzone","Minecraft","Starfield","Elden Ring","Helldivers 2",
+"Skyrim","Fortnite","Diablo 4","Baldur's Gate 3"
+];
+
+function random(arr){return arr[Math.floor(Math.random()*arr.length)]}
 
 app.get("/cron/daily",async(req,res)=>{
  for(let i=0;i<6;i++){
-   const g=randomGame();
-   const title=`${g} guide ${Date.now()} ${i}`;
+   const game=random(games);
+   const topic=random(topics);
+   const title=`${game} ${topic} ${Date.now()} ${i}`;
    const slug=slugify(title,{lower:true,strict:true});
-   const article=`${g} je populární hra.\nTipy pro stream.\nBuildy.\nNovinky.\nUpcoming obsah.\nPodobné hry.`;
+   const article=`${game} — kompletní ${topic}.
+
+Tipy pro hráče.
+Buildy.
+Novinky.
+Upcoming content.
+Podobné hry.
+Streaming tips.`;
    await safeQuery("INSERT INTO articles(title,slug,article) VALUES($1,$2,$3) ON CONFLICT (slug) DO NOTHING",[title,slug,article]);
  }
- res.send("ok");
+ res.send("generated 6");
 });
 
 app.listen(PORT);
