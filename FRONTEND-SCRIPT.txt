@@ -1,0 +1,16 @@
+
+<script>
+async function loadGame(){
+ const r = await fetch('https://thg-backend-production.up.railway.app/api/live');
+ const live = await r.json();
+
+ document.getElementById("gameTitle").innerText = live.title;
+ document.getElementById("gameDesc").innerHTML = live.description;
+
+ if(live.youtube){
+   document.getElementById("ytLink").innerHTML =
+   `<a href="${live.youtube}" target="_blank">▶ Poslední stream</a>`;
+ }
+}
+loadGame();
+</script>
