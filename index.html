@@ -3,81 +3,173 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TheHardwareGuru | LIVE Gaming</title>
+<title>TheHardwareGuru | LIVE Gaming Stream</title>
+<meta name="description" content="Sleduj hardcore gaming stream TheHardwareGuru. Live gameplay, hardware, komunita a nejnovější hry.">
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
-body{margin:0;font-family:Inter;background:#05070f;color:#fff}
-#liveBar{position:fixed;top:0;width:100%;padding:14px;text-align:center;font-weight:800;z-index:9999;display:none;background:#ff0000}
-.hero{padding:120px 20px 80px;text-align:center;background:radial-gradient(circle,#0f172a,#020617)}
-h1{font-family:Orbitron;font-size:4rem;margin:0;background:linear-gradient(90deg,#00ffe1,#00aaff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.cta-main{margin-top:40px;display:inline-block;padding:22px 60px;border-radius:18px;font-size:1.6rem;font-weight:800;background:linear-gradient(45deg,#00ffe1,#00aaff);color:#000;text-decoration:none;box-shadow:0 0 40px #00ffe1}
-.socials{margin-top:30px;display:flex;gap:15px;justify-content:center;flex-wrap:wrap}
-.socials a{padding:14px 24px;border-radius:12px;font-weight:700;text-decoration:none}
-.kick{background:#53fc18;color:#000}.yt{background:#ff0000;color:#fff}.dc{background:#5865F2;color:#fff}
-.game-section{max-width:1000px;margin:80px auto;padding:40px;background:#020617;border-radius:20px;border:1px solid #00ffe1;text-align:center}
-iframe{margin-top:30px;width:100%;height:480px;border:none;border-radius:18px}
-#popup{position:fixed;bottom:20px;right:20px;background:#111827;padding:25px;border-radius:16px;border:1px solid #00ffe1;display:none;max-width:320px}
-#popup a{display:block;margin-top:15px;padding:12px;text-align:center;background:linear-gradient(45deg,#00ffe1,#00aaff);color:#000;font-weight:700;text-decoration:none;border-radius:10px}
+body{
+  margin:0;
+  background:#04060c;
+  color:#fff;
+  font-family:Inter, sans-serif;
+  overflow-x:hidden;
+}
+
+.hero{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  background:radial-gradient(circle at center,#0b1229 0%,#02040a 70%);
+}
+
+h1{
+  font-family:Orbitron;
+  font-size:5rem;
+  margin:0;
+  background:linear-gradient(90deg,#00ffe1,#00aaff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 40px rgba(0,255,225,0.6);
+}
+
+.cta{
+  margin-top:30px;
+  background:linear-gradient(45deg,#00ffe1,#00aaff);
+  color:#000;
+  padding:24px 70px;
+  font-size:1.8rem;
+  font-weight:900;
+  border-radius:18px;
+  text-decoration:none;
+  box-shadow:0 0 50px #00ffe1;
+  transition:.25s;
+}
+.cta:hover{
+  transform:scale(1.07);
+  box-shadow:0 0 80px #00ffe1;
+}
+
+.socials{
+  margin-top:25px;
+  display:flex;
+  gap:16px;
+}
+
+.btn{
+  padding:14px 24px;
+  border-radius:12px;
+  font-weight:700;
+  text-decoration:none;
+}
+.kick{background:#53fc18;color:#000}
+.yt{background:#ff0000;color:#fff}
+.dc{background:#5865F2;color:#fff}
+
+.status{
+  margin-top:18px;
+  font-weight:900;
+  font-size:1.4rem;
+}
+
+.online{color:#ff2d55}
+.offline{color:#777}
+
+.game-section{
+  max-width:1100px;
+  margin:80px auto;
+  background:#020617;
+  border-radius:25px;
+  padding:60px;
+  border:1px solid #00ffe1;
+  box-shadow:0 0 80px rgba(0,255,225,0.15);
+  text-align:center;
+}
+
+.game-section h2{
+  font-family:Orbitron;
+  color:#00ffe1;
+  font-size:2.2rem;
+}
+
+#gameTitle{
+  font-size:2rem;
+  margin-top:10px;
+}
+
+#gameDesc{
+  margin-top:20px;
+  font-size:1.1rem;
+  opacity:.9;
+  line-height:1.7em;
+}
+
+footer{
+  text-align:center;
+  opacity:.5;
+  padding:60px;
+}
+a{color:#00ffe1}
 </style>
 </head>
-<body>
 
-<div id="liveBar">🔴 THEHARDWAREGURU JE LIVE — KLIKNI A POJĎ NA STREAM</div>
+<body>
 
 <section class="hero">
 <h1>TheHardwareGuru</h1>
 
-<a class="cta-main" href="https://kick.com/thehardwareguru" target="_blank">
+<a class="cta" href="https://kick.com/thehardwareguru" target="_blank">
 ▶ SLEDOVAT LIVE STREAM
 </a>
 
 <div class="socials">
-<a class="kick" href="https://kick.com/thehardwareguru" target="_blank">Kick</a>
-<a class="yt" href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
-<a class="dc" href="https://discord.com/invite/n7xThr8" target="_blank">Discord</a>
+<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">Kick</a>
+<a class="btn yt" href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
+<a class="btn dc" href="https://discord.com/invite/n7xThr8" target="_blank">Discord</a>
 </div>
+
+<div id="status" class="status offline">Načítám live status…</div>
 </section>
 
 <section class="game-section">
 <h2>🎮 Aktuální hra</h2>
 <h3 id="gameTitle">Načítám…</h3>
 <p id="gameDesc">Načítám popis…</p>
-<div id="player"></div>
 </section>
 
-<div id="popup">
-<div>Streamer právě hraje živě</div>
-<a href="https://kick.com/thehardwareguru" target="_blank">▶ Otevřít stream</a>
-</div>
+<footer>
+© 2026 TheHardwareGuru.cz | Hardcore Stream
+</footer>
 
 <script>
-const API="https://thg-backend-production.up.railway.app";
+async function loadGame(){
+  try {
+    const r = await fetch('https://thg-backend-production.up.railway.app/api/live');
+    const live = await r.json();
 
-async function init(){
- try{
- const res=await fetch(API+"/api/live");
- const live=await res.json();
+    document.getElementById("gameTitle").innerText = live.title || "Žádná hra";
+    document.getElementById("gameDesc").innerHTML = live.description || "Popis se generuje...";
 
- document.getElementById("gameTitle").innerText=live.title || "LIVE";
+    const s = document.getElementById("status");
+    if(live.live){
+      s.innerText="🔴 STREAM JE ONLINE";
+      s.className="status online";
+    } else {
+      s.innerText="⚫ STREAM JE OFFLINE";
+      s.className="status offline";
+    }
 
- const g=await fetch(API+"/api/game/"+encodeURIComponent(live.title));
- const data=await g.json();
- document.getElementById("gameDesc").innerHTML=data.description || "";
-
- if(live.live){
-   document.getElementById("liveBar").style.display="block";
-   setTimeout(()=>{document.getElementById("popup").style.display="block";},4000);
- }
-
- document.getElementById("player").innerHTML='<iframe src="https://player.kick.com/thehardwareguru"></iframe>';
- }catch(e){
-  console.log("backend wait");
- }
+  } catch(e){
+    document.getElementById("gameTitle").innerText = "Chyba spojení";
+    document.getElementById("gameDesc").innerText = "Backend neodpovídá.";
+  }
 }
 
-init();
+loadGame();
 </script>
 
 </body>
