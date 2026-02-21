@@ -1,2 +1,2 @@
-/top/* https://YOUR-RAILWAY-URL/top/:splat 200
-/sitemap.xml https://YOUR-RAILWAY-URL/sitemap.xml 200
+/top/* https://thg-backend-production.up.railway.app/top/:splat 200
+/sitemap.xml https://thg-backend-production.up.railway.app/sitemap.xml 200
