@@ -3,173 +3,101 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TheHardwareGuru | LIVE Gaming Stream</title>
-<meta name="description" content="Sleduj hardcore gaming stream TheHardwareGuru. Live gameplay, hardware, komunita a nejnovější hry.">
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
+<title>TheHardwareGuru | Live Gaming Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 <style>
 body{
   margin:0;
-  background:#04060c;
+  font-family:Orbitron,Arial;
+  background:#0b0f14;
   color:#fff;
-  font-family:Inter, sans-serif;
-  overflow-x:hidden;
-}
-
-.hero{
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
   text-align:center;
-  background:radial-gradient(circle at center,#0b1229 0%,#02040a 70%);
 }
-
-h1{
-  font-family:Orbitron;
-  font-size:5rem;
-  margin:0;
-  background:linear-gradient(90deg,#00ffe1,#00aaff);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
-  text-shadow:0 0 40px rgba(0,255,225,0.6);
+header{
+  padding:40px 20px;
+  background:linear-gradient(90deg,#0f172a,#020617);
+  box-shadow:0 0 30px #00ffcc33;
 }
-
-.cta{
-  margin-top:30px;
-  background:linear-gradient(45deg,#00ffe1,#00aaff);
-  color:#000;
-  padding:24px 70px;
-  font-size:1.8rem;
-  font-weight:900;
-  border-radius:18px;
-  text-decoration:none;
-  box-shadow:0 0 50px #00ffe1;
-  transition:.25s;
-}
-.cta:hover{
-  transform:scale(1.07);
-  box-shadow:0 0 80px #00ffe1;
-}
-
-.socials{
-  margin-top:25px;
-  display:flex;
-  gap:16px;
-}
-
+h1{font-size:42px;margin:0;color:#00ffcc;}
+.container{padding:40px 20px;max-width:900px;margin:auto;}
 .btn{
-  padding:14px 24px;
-  border-radius:12px;
-  font-weight:700;
+  display:inline-block;
+  margin:10px;
+  padding:14px 26px;
+  border-radius:10px;
   text-decoration:none;
+  color:#fff;
+  font-weight:bold;
 }
-.kick{background:#53fc18;color:#000}
-.yt{background:#ff0000;color:#fff}
-.dc{background:#5865F2;color:#fff}
-
-.status{
-  margin-top:18px;
-  font-weight:900;
-  font-size:1.4rem;
-}
-
-.online{color:#ff2d55}
-.offline{color:#777}
-
-.game-section{
-  max-width:1100px;
-  margin:80px auto;
+.kick{background:#00ff88;color:#000;}
+.yt{background:#ff0033;}
+.discord{background:#5865F2;}
+.box{
+  margin:20px auto;
+  padding:20px;
   background:#020617;
-  border-radius:25px;
-  padding:60px;
-  border:1px solid #00ffe1;
-  box-shadow:0 0 80px rgba(0,255,225,0.15);
-  text-align:center;
+  border:1px solid #00ffcc33;
+  border-radius:14px;
+  max-width:700px;
 }
-
-.game-section h2{
-  font-family:Orbitron;
-  color:#00ffe1;
-  font-size:2.2rem;
-}
-
-#gameTitle{
-  font-size:2rem;
-  margin-top:10px;
-}
-
-#gameDesc{
-  margin-top:20px;
-  font-size:1.1rem;
-  opacity:.9;
-  line-height:1.7em;
-}
-
-footer{
-  text-align:center;
-  opacity:.5;
-  padding:60px;
-}
-a{color:#00ffe1}
+.status{font-size:20px;margin:20px;}
+.online{color:#00ff88;}
+.offline{color:#888;}
 </style>
 </head>
-
 <body>
 
-<section class="hero">
-<h1>TheHardwareGuru</h1>
+<header>
+<h1>THEHARDWAREGURU</h1>
+<div class="status" id="status">Načítám stream...</div>
 
-<a class="cta" href="https://kick.com/thehardwareguru" target="_blank">
-▶ SLEDOVAT LIVE STREAM
-</a>
+<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">Sledovat na Kick</a>
+<a class="btn yt" href="https://youtube.com/@thehardwareguru" target="_blank">YouTube</a>
+<a class="btn discord" href="#" target="_blank">Discord</a>
+</header>
 
-<div class="socials">
-<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">Kick</a>
-<a class="btn yt" href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
-<a class="btn dc" href="https://discord.com/invite/n7xThr8" target="_blank">Discord</a>
+<div class="container">
+<div class="box">
+<h2>Aktuální hra</h2>
+<div id="game">Načítám...</div>
 </div>
 
-<div id="status" class="status offline">Načítám live status…</div>
-</section>
+<div class="box">
+<h2>Popis hry</h2>
+<div id="desc">Načítám...</div>
+</div>
 
-<section class="game-section">
-<h2>🎮 Aktuální hra</h2>
-<h3 id="gameTitle">Načítám…</h3>
-<p id="gameDesc">Načítám popis…</p>
-</section>
-
-<footer>
-© 2026 TheHardwareGuru.cz | Hardcore Stream
-</footer>
+<div class="box">
+<h2>YouTube k videu</h2>
+<div id="yt"></div>
+</div>
+</div>
 
 <script>
-async function loadGame(){
-  try {
-    const r = await fetch('https://thg-backend-production.up.railway.app/api/live');
-    const live = await r.json();
+async function load(){
+ try{
+   const r=await fetch("https://YOUR-RAILWAY-URL/api/live",{cache:"no-store"});
+   const d=await r.json();
 
-    document.getElementById("gameTitle").innerText = live.title || "Žádná hra";
-    document.getElementById("gameDesc").innerHTML = live.description || "Popis se generuje...";
+   if(!d || !d.title){
+     document.getElementById("status").innerHTML='<span class="offline">OFFLINE</span>';
+     document.getElementById("game").innerText="Stream je offline.";
+     document.getElementById("desc").innerText="";
+     return;
+   }
 
-    const s = document.getElementById("status");
-    if(live.live){
-      s.innerText="🔴 STREAM JE ONLINE";
-      s.className="status online";
-    } else {
-      s.innerText="⚫ STREAM JE OFFLINE";
-      s.className="status offline";
-    }
+   document.getElementById("status").innerHTML='<span class="online">ONLINE</span>';
+   document.getElementById("game").innerText=d.title;
+   document.getElementById("desc").innerText=d.description || "";
+   if(d.youtube){
+     document.getElementById("yt").innerHTML='<a class="btn yt" href="'+d.youtube+'" target="_blank">Video</a>';
+   }
 
-  } catch(e){
-    document.getElementById("gameTitle").innerText = "Chyba spojení";
-    document.getElementById("gameDesc").innerText = "Backend neodpovídá.";
-  }
+ }catch(e){
+   document.getElementById("status").innerHTML='<span class="offline">OFFLINE</span>';
+ }
 }
-
-loadGame();
+load();
 </script>
 
 </body>
