@@ -6,99 +6,54 @@
 <title>TheHardwareGuru | Live Gaming Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 <style>
-body{
-  margin:0;
-  font-family:Orbitron,Arial;
-  background:#0b0f14;
-  color:#fff;
-  text-align:center;
-}
-header{
-  padding:40px 20px;
-  background:linear-gradient(90deg,#0f172a,#020617);
-  box-shadow:0 0 30px #00ffcc33;
-}
-h1{font-size:42px;margin:0;color:#00ffcc;}
-.container{padding:40px 20px;max-width:900px;margin:auto;}
-.btn{
-  display:inline-block;
-  margin:10px;
-  padding:14px 26px;
-  border-radius:10px;
-  text-decoration:none;
-  color:#fff;
-  font-weight:bold;
-}
-.kick{background:#00ff88;color:#000;}
-.yt{background:#ff0033;}
-.discord{background:#5865F2;}
-.box{
-  margin:20px auto;
-  padding:20px;
-  background:#020617;
-  border:1px solid #00ffcc33;
-  border-radius:14px;
-  max-width:700px;
-}
-.status{font-size:20px;margin:20px;}
-.online{color:#00ff88;}
-.offline{color:#888;}
+body{margin:0;font-family:Orbitron,Arial;background:#0b0f14;color:#fff;text-align:center}
+header{padding:40px 20px;background:linear-gradient(90deg,#0f172a,#020617);box-shadow:0 0 30px #00ffcc33}
+h1{font-size:42px;margin:0;color:#00ffcc}
+.container{padding:40px 20px;max-width:900px;margin:auto}
+.btn{display:inline-block;margin:10px;padding:14px 26px;border-radius:10px;text-decoration:none;color:#fff;font-weight:bold}
+.kick{background:#00ff88;color:#000}
+.yt{background:#ff0033}
+.discord{background:#5865F2}
+.box{margin:20px auto;padding:20px;background:#020617;border:1px solid #00ffcc33;border-radius:14px;max-width:700px}
+.status{font-size:20px;margin:20px}
+.online{color:#00ff88}
+.offline{color:#888}
 </style>
 </head>
 <body>
-
 <header>
 <h1>THEHARDWAREGURU</h1>
 <div class="status" id="status">Načítám stream...</div>
-
 <a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">Sledovat na Kick</a>
 <a class="btn yt" href="https://youtube.com/@thehardwareguru" target="_blank">YouTube</a>
 <a class="btn discord" href="#" target="_blank">Discord</a>
 </header>
-
 <div class="container">
-<div class="box">
-<h2>Aktuální hra</h2>
-<div id="game">Načítám...</div>
+<div class="box"><h2>Aktuální hra</h2><div id="game">Načítám...</div></div>
+<div class="box"><h2>Popis hry</h2><div id="desc"></div></div>
+<div class="box"><h2>YouTube</h2><div id="yt"></div></div>
 </div>
-
-<div class="box">
-<h2>Popis hry</h2>
-<div id="desc">Načítám...</div>
-</div>
-
-<div class="box">
-<h2>YouTube k videu</h2>
-<div id="yt"></div>
-</div>
-</div>
-
 <script>
 async function load(){
  try{
    const r=await fetch("https://YOUR-RAILWAY-URL/api/live",{cache:"no-store"});
    const d=await r.json();
-
    if(!d || !d.title){
      document.getElementById("status").innerHTML='<span class="offline">OFFLINE</span>';
      document.getElementById("game").innerText="Stream je offline.";
-     document.getElementById("desc").innerText="";
      return;
    }
-
    document.getElementById("status").innerHTML='<span class="online">ONLINE</span>';
    document.getElementById("game").innerText=d.title;
-   document.getElementById("desc").innerText=d.description || "";
+   document.getElementById("desc").innerText=d.description||"";
    if(d.youtube){
      document.getElementById("yt").innerHTML='<a class="btn yt" href="'+d.youtube+'" target="_blank">Video</a>';
    }
-
- }catch(e){
+ }catch{
    document.getElementById("status").innerHTML='<span class="offline">OFFLINE</span>';
  }
 }
 load();
 </script>
-
 </body>
 </html>
