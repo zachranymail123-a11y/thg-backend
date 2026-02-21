@@ -1,140 +1,185 @@
 
 import express from "express";
 import fetch from "node-fetch";
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
+import pkg from "pg";
 import cors from "cors";
+
+const { Pool } = pkg;
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const OPENAI_API = process.env.OPENAI_API;
+const DATABASE_URL = process.env.DATABASE_URL;
 
-let db;
+const pool = new Pool({
+ connectionString: DATABASE_URL,
+ ssl: { rejectUnauthorized: false }
+});
 
+// ---------- INIT DB ----------
 async function initDB(){
- db = await open({
-  filename:"./database.sqlite",
-  driver: sqlite3.Database
- });
+ await pool.query(`
+ CREATE TABLE IF NOT EXISTS games(
+  id SERIAL PRIMARY KEY,
+  slug TEXT UNIQUE,
+  title TEXT,
+  description TEXT,
+  article TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+ );
+ `);
 
- await db.exec(`
+ await pool.query(`
  CREATE TABLE IF NOT EXISTS articles(
-   id INTEGER PRIMARY KEY AUTOINCREMENT,
-   slug TEXT UNIQUE,
-   title TEXT,
-   lang TEXT,
-   content TEXT,
-   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
- )
+  id SERIAL PRIMARY KEY,
+  slug TEXT UNIQUE,
+  title TEXT,
+  lang TEXT,
+  content TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+ );
  `);
 }
 
+// ---------- HELPERS ----------
 function slugify(t){
- return t.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+ return t.toLowerCase()
+ .replace(/[^a-z0-9]+/g,"-")
+ .replace(/(^-|-$)/g,"");
 }
 
-async function aiWrite(title, lang){
+// ---------- AI GENERATOR ----------
+async function aiArticle(title,lang){
 
- let promptCZ = `Napiš dlouhý profesionální SEO článek česky: ${title}. Minimálně 1200 slov.`;
- let promptEN = `Write long professional SEO gaming article: ${title}. 1200+ words.`;
+ const prompt = lang==="cz"
+ ? `Napiš dlouhý profesionální SEO gaming článek česky o: ${title}. Minimálně 1200 slov.`
+ : `Write long professional SEO gaming article about: ${title}. 1200+ words.`;
 
- const res = await fetch("https://api.openai.com/v1/responses",{
+ const r = await fetch("https://api.openai.com/v1/responses",{
   method:"POST",
   headers:{
    "Authorization":"Bearer "+OPENAI_API,
    "Content-Type":"application/json"
   },
   body:JSON.stringify({
-   model:"gpt-4.1",
-   input: lang==="cz"?promptCZ:promptEN
+   model:"gpt-4.1-mini",
+   input:prompt
   })
  });
 
- const data = await res.json();
+ const data = await r.json();
  return data.output?.[0]?.content?.[0]?.text || title;
 }
 
-async function createArticle(title,lang){
+// ---------- GAME PAGE ----------
+app.get("/api/game/:title", async(req,res)=>{
 
- const slug = slugify(title+"-"+lang);
+ const raw = decodeURIComponent(req.params.title);
+ const clean = raw.replace(/LIVE|CZ|Gameplay|🔥/gi,"").trim();
+ const slug = slugify(clean);
 
- let exists = await db.get("SELECT * FROM articles WHERE slug=?",slug);
- if(exists) return;
+ let g = await pool.query("SELECT * FROM games WHERE slug=$1",[slug]);
 
- const content = await aiWrite(title,lang);
+ if(g.rows.length>0){
+  res.json(g.rows[0]);
+  return;
+ }
 
- await db.run(
-  "INSERT INTO articles (slug,title,lang,content) VALUES (?,?,?,?)",
-  slug,title,lang,content
+ const article = await aiArticle(clean,"cz");
+ const desc = article.substring(0,300);
+
+ await pool.query(
+  "INSERT INTO games(slug,title,description,article) VALUES($1,$2,$3,$4)",
+  [slug,clean,desc,article]
  );
-}
 
-// 🔥 DAILY AUTO GENERATOR
+ const saved = await pool.query("SELECT * FROM games WHERE slug=$1",[slug]);
+ res.json(saved.rows[0]);
+});
+
+// ---------- DAILY AUTOPILOT ----------
 app.get("/cron/daily", async(req,res)=>{
 
- const date = new Date();
- const year = date.getFullYear();
+ const year = new Date().getFullYear();
 
  const topics = [
   `Nejlepší hry ${year}`,
   `Nové hry ${year}`,
   `Nejočekávanější hry ${year+1}`,
   `Best games ${year}`,
-  `Upcoming games ${year+1}`,
-  `New games ${year}`
+  `New games ${year}`,
+  `Upcoming games ${year+1}`
  ];
 
  for(const t of topics){
-   if(t.includes("Best") || t.includes("Upcoming") || t.includes("New")){
-     await createArticle(t,"en");
-   }else{
-     await createArticle(t,"cz");
-   }
+
+  const lang = t.match(/Best|New|Upcoming/) ? "en" : "cz";
+  const slug = slugify(t+"-"+lang);
+
+  const exist = await pool.query("SELECT * FROM articles WHERE slug=$1",[slug]);
+  if(exist.rows.length>0) continue;
+
+  const content = await aiArticle(t,lang);
+
+  await pool.query(
+   "INSERT INTO articles(slug,title,lang,content) VALUES($1,$2,$3,$4)",
+   [slug,t,lang,content]
+  );
  }
 
- res.send("OK DAILY GENERATED");
+ res.send("DAILY GENERATED OK");
 });
 
-// HTML
+// ---------- SEO PAGE ----------
 app.get("/top/:slug", async(req,res)=>{
- const a = await db.get("SELECT * FROM articles WHERE slug=?",req.params.slug);
- if(!a){ res.send("nenalezeno"); return;}
+ const a = await pool.query("SELECT * FROM articles WHERE slug=$1",[req.params.slug]);
+ if(a.rows.length===0){ res.send("nenalezeno"); return; }
+
+ const art = a.rows[0];
 
  res.send(`
  <!DOCTYPE html>
- <html lang="${a.lang}">
+ <html lang="${art.lang}">
  <head>
  <meta charset="UTF-8">
- <title>${a.title}</title>
- <meta name="description" content="${a.title}">
+ <title>${art.title}</title>
+ <meta name="description" content="${art.title}">
  </head>
  <body style="background:#05070f;color:white;font-family:Arial;max-width:900px;margin:60px auto;line-height:1.7">
- <h1>${a.title}</h1>
- <div>${a.content.replace(/\n/g,"<br>")}</div>
+ <h1>${art.title}</h1>
+ <div>${art.content.replace(/\\n/g,"<br>")}</div>
  <p><a href="https://thehardwareguru.cz">← zpět na stream</a></p>
  </body>
  </html>
  `);
 });
 
-// sitemap
+// ---------- SITEMAP ----------
 app.get("/sitemap.xml", async(req,res)=>{
- const rows = await db.all("SELECT slug FROM articles");
+
+ const g = await pool.query("SELECT slug FROM games");
+ const a = await pool.query("SELECT slug FROM articles");
+
  let xml=`<?xml version="1.0" encoding="UTF-8"?>
  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
 
- rows.forEach(r=>{
+ g.rows.forEach(r=>{
+  xml+=`<url><loc>https://thehardwareguru.cz/hra/${r.slug}</loc></url>`;
+ });
+
+ a.rows.forEach(r=>{
   xml+=`<url><loc>https://thehardwareguru.cz/top/${r.slug}</loc></url>`;
  });
 
  xml+="</urlset>";
+
  res.header("Content-Type","application/xml");
  res.send(xml);
 });
 
 initDB().then(()=>{
- app.listen(PORT,()=>console.log("AUTOPILOT DAILY READY"));
+ app.listen(PORT,()=>console.log("THG FINAL BACKEND RUNNING "+PORT));
 });
