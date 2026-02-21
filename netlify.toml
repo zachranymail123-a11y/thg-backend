@@ -1,5 +1,11 @@
 [[redirects]]
-from = "/sitemap.xml"
-to = "https://thg-backend-production.up.railway.app/sitemap.xml"
+from = "/top/*"
+to = "https://thg-backend-production.up.railway.app/top/:splat"
+status = 200
+force = true
+
+[[redirects]]
+from = "/hra/*"
+to = "https://thg-backend-production.up.railway.app/hra/:splat"
 status = 200
 force = true
