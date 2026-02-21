@@ -1,160 +1,83 @@
-
 <!DOCTYPE html>
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TheHardwareGuru | LIVE Gaming</title>
 
-<title>TheHardwareGuru | Live Gaming & Nejnovější hry</title>
-<meta name="description" content="Hardcore gaming stream TheHardwareGuru. Sleduj live stream, gameplay a články o nejnovějších hrách.">
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
-body{margin:0;background:#05070f;color:#fff;font-family:Inter;overflow-x:hidden}
-
-/* LIVE BAR */
-.livebar{
-position:fixed;top:0;width:100%;background:#ff0033;color:#fff;
-text-align:center;padding:10px;font-weight:900;z-index:999;
-display:none
-}
-
-/* HERO */
-.hero{
-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
-background:radial-gradient(circle at center,#0f172a 0%,#020617 70%);
-padding-top:60px;
-}
-h1{
-font-family:Orbitron;font-size:5rem;margin:0;
-background:linear-gradient(90deg,#00ffe1,#00aaff);
--webkit-background-clip:text;-webkit-text-fill-color:transparent;
-text-shadow:0 0 40px rgba(0,255,225,.6)
-}
-
-.cta{
-margin-top:30px;background:linear-gradient(45deg,#00ffe1,#00aaff);
-color:#000;padding:24px 70px;font-size:1.8rem;font-weight:900;
-border-radius:18px;text-decoration:none;box-shadow:0 0 50px #00ffe1
-}
-
-.socials{margin-top:25px;display:flex;gap:16px}
-.btn{padding:14px 24px;border-radius:12px;font-weight:700;text-decoration:none}
-.kick{background:#53fc18;color:#000}
-.yt{background:#ff0000;color:#fff}
-.dc{background:#5865F2;color:#fff}
-
-.status{margin-top:18px;font-weight:900;font-size:1.4rem}
-.online{color:#ff2d55}
-.offline{color:#777}
-
-/* GAME */
-.game-section{
-max-width:1000px;margin:80px auto;background:#020617;
-border-radius:25px;padding:50px;border:1px solid #00ffe1;text-align:center
-}
-
-#gameDesc{line-height:1.7em;margin-top:20px}
-
-/* ARTICLES */
-.articles{
-max-width:1100px;margin:80px auto;padding:20px
-}
-.articles h2{font-family:Orbitron;color:#00ffe1;text-align:center}
-.grid{
-display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:30px
-}
-.card{
-background:#020617;border:1px solid #00ffe1;border-radius:16px;padding:20px
-}
-.card a{color:#00ffe1;font-weight:bold;text-decoration:none}
-
-footer{text-align:center;opacity:.6;padding:60px}
-a{color:#00ffe1}
+body{margin:0;font-family:Inter;background:#05070f;color:#fff}
+#liveBar{position:fixed;top:0;width:100%;padding:14px;text-align:center;font-weight:800;z-index:9999;display:none;background:#ff0000}
+.hero{padding:120px 20px 80px;text-align:center;background:radial-gradient(circle,#0f172a,#020617)}
+h1{font-family:Orbitron;font-size:4rem;margin:0;background:linear-gradient(90deg,#00ffe1,#00aaff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.cta-main{margin-top:40px;display:inline-block;padding:22px 60px;border-radius:18px;font-size:1.6rem;font-weight:800;background:linear-gradient(45deg,#00ffe1,#00aaff);color:#000;text-decoration:none;box-shadow:0 0 40px #00ffe1}
+.socials{margin-top:30px;display:flex;gap:15px;justify-content:center;flex-wrap:wrap}
+.socials a{padding:14px 24px;border-radius:12px;font-weight:700;text-decoration:none}
+.kick{background:#53fc18;color:#000}.yt{background:#ff0000;color:#fff}.dc{background:#5865F2;color:#fff}
+.game-section{max-width:1000px;margin:80px auto;padding:40px;background:#020617;border-radius:20px;border:1px solid #00ffe1;text-align:center}
+iframe{margin-top:30px;width:100%;height:480px;border:none;border-radius:18px}
+#popup{position:fixed;bottom:20px;right:20px;background:#111827;padding:25px;border-radius:16px;border:1px solid #00ffe1;display:none;max-width:320px}
+#popup a{display:block;margin-top:15px;padding:12px;text-align:center;background:linear-gradient(45deg,#00ffe1,#00aaff);color:#000;font-weight:700;text-decoration:none;border-radius:10px}
 </style>
 </head>
-
 <body>
 
-<div class="livebar" id="livebar">🔴 STREAM JE LIVE — KLIKNI A SLEDUJ</div>
+<div id="liveBar">🔴 THEHARDWAREGURU JE LIVE — KLIKNI A POJĎ NA STREAM</div>
 
 <section class="hero">
 <h1>TheHardwareGuru</h1>
 
-<a class="cta" href="https://kick.com/thehardwareguru" target="_blank">
+<a class="cta-main" href="https://kick.com/thehardwareguru" target="_blank">
 ▶ SLEDOVAT LIVE STREAM
 </a>
 
 <div class="socials">
-<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">Kick</a>
-<a class="btn yt" href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
-<a class="btn dc" href="https://discord.com/invite/n7xThr8" target="_blank">Discord</a>
+<a class="kick" href="https://kick.com/thehardwareguru" target="_blank">Kick</a>
+<a class="yt" href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
+<a class="dc" href="https://discord.com/invite/n7xThr8" target="_blank">Discord</a>
 </div>
-
-<div id="status" class="status offline">Načítám live status…</div>
 </section>
 
 <section class="game-section">
-<h2>🎮 Právě streamuju</h2>
+<h2>🎮 Aktuální hra</h2>
 <h3 id="gameTitle">Načítám…</h3>
-<p id="gameDesc">Generuji popis…</p>
-<div id="ytLink"></div>
+<p id="gameDesc">Načítám popis…</p>
+<div id="player"></div>
 </section>
 
-<section class="articles">
-<h2>🔥 Nejnovější hry</h2>
-<div class="grid" id="articles"></div>
-</section>
-
-<footer>© 2026 TheHardwareGuru.cz</footer>
+<div id="popup">
+<div>Streamer právě hraje živě</div>
+<a href="https://kick.com/thehardwareguru" target="_blank">▶ Otevřít stream</a>
+</div>
 
 <script>
 const API="https://thg-backend-production.up.railway.app";
 
-async function load(){
+async function init(){
+ try{
+ const res=await fetch(API+"/api/live");
+ const live=await res.json();
 
- const r=await fetch('/.netlify/functions/game-info');
- const live=await r.json();
+ document.getElementById("gameTitle").innerText=live.title || "LIVE";
 
- let title=live.title;
- document.getElementById("gameTitle").innerText=title;
-
- const g=await fetch(API+"/api/game/"+encodeURIComponent(title));
+ const g=await fetch(API+"/api/game/"+encodeURIComponent(live.title));
  const data=await g.json();
- document.getElementById("gameDesc").innerHTML=data.description;
+ document.getElementById("gameDesc").innerHTML=data.description || "";
 
- if(live.youtube){
- document.getElementById("ytLink").innerHTML=
- '<p><a href="'+live.youtube+'" target="_blank">▶ Poslední záznam na YouTube</a></p>';
- }
-
- const s=document.getElementById("status");
  if(live.live){
-  s.innerText="🔴 STREAM JE ONLINE";
-  s.className="status online";
-  document.getElementById("livebar").style.display="block";
- }else{
-  s.innerText="⚫ STREAM JE OFFLINE";
+   document.getElementById("liveBar").style.display="block";
+   setTimeout(()=>{document.getElementById("popup").style.display="block";},4000);
  }
 
- // load sitemap for internal linking
- const sm=await fetch(API+"/sitemap.xml");
- const text=await sm.text();
- const matches=[...text.matchAll(/<loc>(.*?)<\/loc>/g)];
-
- let html="";
- matches.slice(0,12).forEach(m=>{
-   const url=m[1];
-   const slug=url.split("/hra/")[1];
-   const name=slug.replace(/-/g," ");
-   html+=`<div class="card"><a href="${url}" target="_blank">${name}</a></div>`;
- });
-
- document.getElementById("articles").innerHTML=html;
+ document.getElementById("player").innerHTML='<iframe src="https://player.kick.com/thehardwareguru"></iframe>';
+ }catch(e){
+  console.log("backend wait");
+ }
 }
 
-load();
+init();
 </script>
 
 </body>
