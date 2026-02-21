@@ -3,15 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TheHardwareGuru | Gaming Hub</title>
+<title>TheHardwareGuru | Gaming Magazine</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 <style>
 body{margin:0;font-family:Orbitron,Arial;background:#0b0f14;color:#fff;text-align:center}
-header{padding:40px 20px;background:linear-gradient(90deg,#111827,#020617)}
-h1{font-size:42px;margin:0;color:#00ffcc}
-.container{padding:40px 20px;max-width:900px;margin:auto}
-.btn{display:inline-block;margin:10px;padding:14px 26px;border-radius:10px;text-decoration:none;color:#000;font-weight:bold;background:#00ff88}
-.box{margin:20px auto;padding:20px;background:#111827;border-radius:12px}
+header{padding:50px 20px;background:linear-gradient(90deg,#111827,#020617)}
+h1{font-size:44px;margin:0;color:#00ffcc}
+.container{padding:40px 20px;max-width:1000px;margin:auto}
+.btn{display:inline-block;margin:10px;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold}
+.kick{background:#00ff88;color:#000}
+.yt{background:#ff0033;color:#fff}
+.discord{background:#5865F2;color:#fff}
+.box{margin:25px auto;padding:25px;background:#111827;border-radius:16px}
 .status{font-size:20px;margin:20px}
 .online{color:#00ff88}
 .offline{color:#888}
@@ -20,13 +23,14 @@ h1{font-size:42px;margin:0;color:#00ffcc}
 <body>
 <header>
 <h1>THEHARDWAREGURU</h1>
-<div id="status" class="status">Načítám...</div>
-<a class="btn" href="https://kick.com/thehardwareguru" target="_blank">WATCH LIVE ON KICK</a>
-<a class="btn" href="https://youtube.com/@thehardwareguru" target="_blank">YouTube</a>
+<div id="status" class="status">Načítám stream...</div>
+<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">WATCH LIVE ON KICK</a>
+<a class="btn yt" href="https://youtube.com/@thehardwareguru" target="_blank">YouTube</a>
+<a class="btn discord" href="#" target="_blank">Discord</a>
 </header>
 <div class="container">
-<div class="box"><h2>Aktuální hra</h2><div id="game">Načítám...</div></div>
-<div class="box"><h2>Popis</h2><div id="desc"></div></div>
+<div class="box"><h2>Aktuálně streamuji</h2><div id="game">Načítám...</div></div>
+<div class="box"><h2>Popis streamu</h2><div id="desc"></div></div>
 </div>
 <script>
 async function load(){
@@ -35,7 +39,7 @@ async function load(){
    const d=await r.json();
    if(!d || !d.title){
      document.getElementById("status").innerHTML='<span class="offline">OFFLINE</span>';
-     document.getElementById("game").innerText="Stream je offline.";
+     document.getElementById("game").innerText="Momentálně offline.";
      return;
    }
    document.getElementById("status").innerHTML='<span class="online">LIVE NOW</span>';

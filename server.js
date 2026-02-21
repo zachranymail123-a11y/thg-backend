@@ -37,42 +37,56 @@ async function init(){
 }
 init();
 
-const games=["GTA 6","Cyberpunk 2077","Warzone","Starfield","Elden Ring","Helldivers 2","Baldur's Gate 3","Silent Hill","Alan Wake 2","Red Dead Redemption 2"];
-const topics=["complete guide","story playthrough","first impressions","best settings","gameplay overview","review","tips and tricks","beginner guide"];
+const games=["GTA 6","Cyberpunk 2077","Warzone","Starfield","Elden Ring","Alan Wake 2","Baldur's Gate 3","Silent Hill"];
+const topics=["Update 2026","Complete Guide","Story Overview","Gameplay Analysis","New Features Explained"];
 
 function rand(a){return a[Math.floor(Math.random()*a.length)]}
 
 async function generateArticle(lang){
   const game=rand(games);
   const topic=rand(topics);
-  const title=lang==="cz"
-    ? `${game} ${topic} 2026 CZ`
-    : `${game} ${topic} 2026`;
+  const title = lang==="cz"
+    ? `${game} ${topic} – Kompletní Přehled`
+    : `${game} ${topic} – Complete Overview`;
+
   const slug=slugify(title+"-"+Date.now(),{lower:true,strict:true});
-  const intro=lang==="cz"
-    ? `${game} patří mezi nejzajímavější hry roku 2026. V tomto článku najdeš přehled, tipy a důvody, proč sledovat live gameplay.`
-    : `${game} is one of the most talked about games of 2026. Here you will find an overview, tips and reasons to watch live gameplay.`;
+
   const article=`
-<h2>${title}</h2>
-<p>${intro}</p>
-<h3>Gameplay Overview</h3>
-<p>${game} nabízí silný příběh, atmosféru a akci.</p>
-<h3>Beginner Tips</h3>
-<p>Zaměř se na správné tempo a sleduj detaily příběhu.</p>
-<h3>Why Watch Live</h3>
-<p>Sleduj TheHardwareGuru live pro autentický gameplay bez střihu.</p>
-<div style="margin:30px;padding:20px;background:#111827;border-radius:10px;text-align:center;">
-<h3>🎮 WATCH LIVE GAMEPLAY</h3>
-<a href="https://kick.com/thehardwareguru" style="display:inline-block;padding:12px 20px;background:#00ff88;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">WATCH LIVE ON KICK</a>
+<div style="max-width:900px;margin:auto;padding:40px;font-family:Arial;">
+<h1 style="font-size:38px;">${title}</h1>
+
+<div style="margin:30px 0;padding:25px;background:#111827;border-radius:14px;text-align:center;">
+<h2>🎮 WATCH LIVE GAMEPLAY</h2>
+<p>TheHardwareGuru streamuje nové hry každý den.</p>
+<a href="https://kick.com/thehardwareguru" style="display:inline-block;margin:10px;padding:14px 26px;background:#00ff88;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">WATCH LIVE ON KICK</a>
+<a href="https://youtube.com/@thehardwareguru" style="display:inline-block;margin:10px;padding:14px 26px;background:#ff0033;color:#fff;font-weight:bold;border-radius:8px;text-decoration:none;">YouTube Gameplay</a>
+</div>
+
+<h2>Overview</h2>
+<p>${game} patří mezi nejdiskutovanější tituly poslední doby. Tento článek přináší detailní pohled na změny, herní mechaniky a důvody, proč hra přitahuje hráče po celém světě.</p>
+
+<h2>Gameplay & Mechanics</h2>
+<p>Hra nabízí kombinaci příběhu, akce a strategických rozhodnutí. Každý update přináší nové prvky, které ovlivňují styl hraní i celkovou dynamiku.</p>
+
+<h2>Why It’s Trending</h2>
+<p>Komunita sleduje novinky kolem hry kvůli častým aktualizacím a novému obsahu. Díky tomu zůstává hra relevantní a stále populární.</p>
+
+<div style="margin:40px 0;padding:25px;background:#020617;border-radius:14px;text-align:center;">
+<h2>🔥 Sleduj Live Gameplay</h2>
+<p>Chceš vidět reálný gameplay bez střihu? Sleduj stream živě.</p>
+<a href="https://kick.com/thehardwareguru" style="display:inline-block;margin:10px;padding:14px 26px;background:#00ff88;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">WATCH LIVE</a>
+</div>
+
 </div>
 `;
+
   await q("INSERT INTO articles(title,slug,article) VALUES($1,$2,$3) ON CONFLICT (slug) DO NOTHING",[title,slug,article]);
 }
 
 app.get("/cron/daily",async(req,res)=>{
   for(let i=0;i<6;i++) await generateArticle("cz");
   for(let i=0;i<6;i++) await generateArticle("en");
-  res.send("generated 12");
+  res.send("generated 12 authority articles");
 });
 
 app.get("/api/live",async(req,res)=>{
@@ -81,28 +95,10 @@ app.get("/api/live",async(req,res)=>{
   res.json(r.rows[0]);
 });
 
-app.get("/setlive",async(req,res)=>{
-  const {title,desc,youtube}=req.query;
-  if(!title) return res.send("missing");
-  await q("INSERT INTO live_game(title,description,youtube) VALUES($1,$2,$3)",[title,desc||"",youtube||""]);
-  res.send("ok");
-});
-
 app.get("/top/:slug",async(req,res)=>{
   const r=await q("SELECT * FROM articles WHERE slug=$1",[req.params.slug]);
   if(!r.rows.length) return res.status(404).send("404");
-  const a=r.rows[0];
-  res.send(`<!DOCTYPE html><html><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${a.title}</title>
-<link rel="canonical" href="https://thehardwareguru.cz/top/${a.slug}">
-<style>
-body{background:#0b0f14;color:#fff;font-family:Arial;padding:40px;max-width:900px;margin:auto}
-a{color:#00ff88}
-</style></head><body>
-${a.article}
-</body></html>`);
+  res.send(r.rows[0].article);
 });
 
 app.get("/sitemap.xml",async(req,res)=>{
