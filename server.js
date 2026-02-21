@@ -31,16 +31,31 @@ async function initDB() {
   `);
 }
 
-// 🔥 CLEAN GAME TITLE FOR AUTHORITY SEO
+// 🔥 ULTRA CLEAN GAME TITLE
 function cleanGameTitle(title){
-  return title
-    .replace(/LIVE/gi,"")
-    .replace(/CZ/gi,"")
-    .replace(/Gameplay/gi,"")
-    .replace(/\|.*$/,"")
-    .replace(/[🔥🎮⭐✨]/g,"")
+
+  let t = title.toLowerCase();
+
+  // odstraní vše za | nebo -
+  t = t.replace(/\|.*$/,"");
+
+  // remove cz/live/gameplay/první etc
+  t = t
+    .replace(/live/gi,"")
+    .replace(/cz/gi,"")
+    .replace(/gameplay/gi,"")
+    .replace(/prvn[íi]?/gi,"")
+    .replace(/first/gi,"")
+    .replace(/[🔥🎮⭐✨]/g,"");
+
+  // remove extra words after game name (hard cut)
+  // vezme jen první 3 slova (většina her)
+  const words = t.trim().split(" ").slice(0,3).join(" ");
+
+  return words
     .replace(/\s+/g," ")
-    .trim();
+    .trim()
+    .replace(/\b\w/g,l=>l.toUpperCase());
 }
 
 function slugify(text) {
@@ -51,12 +66,12 @@ function slugify(text) {
 }
 
 async function generateContent(title) {
+
   const prompt = `
-Napiš dlouhý SEO článek o hře ${title}.
-Piš jako profesionální gaming magazín.
-Bez zmínky o streamu nebo gameplay.
-800–1200 slov.
-Použij nadpisy H2.
+Napiš profesionální SEO článek o hře ${title}.
+Bez zmínky o streamu.
+Gaming magazín styl.
+1000 slov.
 `;
 
   const response = await fetch("https://api.openai.com/v1/responses", {
@@ -80,7 +95,6 @@ Použij nadpisy H2.
   };
 }
 
-// JSON API
 app.get("/api/game/:title", async (req, res) => {
 
   const raw = decodeURIComponent(req.params.title);
@@ -121,28 +135,11 @@ app.get("/hra/:slug", async (req, res) => {
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${game.title} | TheHardwareGuru</title>
 <meta name="description" content="${game.description.replace(/"/g,"")}">
 <link rel="canonical" href="https://thehardwareguru.cz/hra/${game.slug}">
-
-<script type="application/ld+json">
-{
- "@context":"https://schema.org",
- "@type":"VideoGame",
- "name":"${game.title}",
- "description":"${game.description.replace(/"/g,"")}",
- "publisher":{"@type":"Organization","name":"TheHardwareGuru"}
-}
-</script>
-
-<style>
-body{background:#05070f;color:#fff;font-family:Arial;max-width:900px;margin:60px auto;padding:20px;line-height:1.7}
-h1{color:#00ffe1}
-a{color:#00ffe1}
-</style>
 </head>
-<body>
+<body style="background:#05070f;color:white;font-family:Arial;max-width:900px;margin:60px auto;padding:20px;line-height:1.7">
 
 <h1>${game.title}</h1>
 <p><a href="https://thehardwareguru.cz">← zpět na stream</a></p>
@@ -151,11 +148,10 @@ a{color:#00ffe1}
 </body>
 </html>
 `;
-
   res.send(html);
 });
 
-// SITEMAP AUTO
+// sitemap
 app.get("/sitemap.xml", async (req,res)=>{
   const games = await db.all("SELECT slug FROM games");
 
@@ -176,5 +172,5 @@ app.get("/sitemap.xml", async (req,res)=>{
 });
 
 initDB().then(()=>{
-  app.listen(PORT, ()=>console.log("AUTHORITY SEO ENGINE RUNNING",PORT));
+  app.listen(PORT, ()=>console.log("FINAL CLEAN SEO ENGINE RUNNING",PORT));
 });

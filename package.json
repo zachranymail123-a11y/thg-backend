@@ -1,11 +1,9 @@
 {
-  "name": "thg-authority-seo",
-  "version": "3.0.0",
+  "name": "thg-clean-final",
+  "version": "4.0.0",
   "type": "module",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
+  "scripts": { "start": "node server.js" },
   "dependencies": {
     "express": "^4.18.2",
     "node-fetch": "^3.3.2",
