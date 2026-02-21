@@ -1,6 +1,6 @@
 {
-  "name": "thg-clean-final",
-  "version": "4.0.0",
+  "name": "thg-universal-seo",
+  "version": "5.0.0",
   "type": "module",
   "main": "server.js",
   "scripts": { "start": "node server.js" },

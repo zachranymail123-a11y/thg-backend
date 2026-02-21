@@ -31,31 +31,36 @@ async function initDB() {
   `);
 }
 
-// 🔥 ULTRA CLEAN GAME TITLE
+// 🧠 UNIVERSAL CLEAN TITLE
 function cleanGameTitle(title){
 
-  let t = title.toLowerCase();
+  let t = title;
 
-  // odstraní vše za | nebo -
+  // remove html entities
+  t = t.replace(/&amp;/g,"&");
+
+  // remove everything after |
   t = t.replace(/\|.*$/,"");
 
-  // remove cz/live/gameplay/první etc
+  // remove LIVE / CZ / Gameplay etc
   t = t
-    .replace(/live/gi,"")
-    .replace(/cz/gi,"")
-    .replace(/gameplay/gi,"")
-    .replace(/prvn[íi]?/gi,"")
-    .replace(/first/gi,"")
-    .replace(/[🔥🎮⭐✨]/g,"");
+    .replace(/LIVE/gi,"")
+    .replace(/Gameplay/gi,"")
+    .replace(/Walkthrough/gi,"")
+    .replace(/Let'?s Play/gi,"")
+    .replace(/CZ/gi,"")
+    .replace(/SK/gi,"")
+    .replace(/EN/gi,"")
+    .replace(/První/gi,"")
+    .replace(/First/gi,"");
 
-  // remove extra words after game name (hard cut)
-  // vezme jen první 3 slova (většina her)
-  const words = t.trim().split(" ").slice(0,3).join(" ");
+  // remove emojis
+  t = t.replace(/[^\w\s:]/gi,"");
 
-  return words
-    .replace(/\s+/g," ")
-    .trim()
-    .replace(/\b\w/g,l=>l.toUpperCase());
+  // trim spaces
+  t = t.replace(/\s+/g," ").trim();
+
+  return t;
 }
 
 function slugify(text) {
@@ -69,8 +74,8 @@ async function generateContent(title) {
 
   const prompt = `
 Napiš profesionální SEO článek o hře ${title}.
+Jako gaming magazín.
 Bez zmínky o streamu.
-Gaming magazín styl.
 1000 slov.
 `;
 
@@ -172,5 +177,5 @@ app.get("/sitemap.xml", async (req,res)=>{
 });
 
 initDB().then(()=>{
-  app.listen(PORT, ()=>console.log("FINAL CLEAN SEO ENGINE RUNNING",PORT));
+  app.listen(PORT, ()=>console.log("UNIVERSAL SEO ENGINE READY",PORT));
 });
