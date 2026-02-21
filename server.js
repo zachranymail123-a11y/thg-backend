@@ -47,7 +47,7 @@ async function generateContent(title) {
     },
     body: JSON.stringify({
       model: "gpt-4.1-mini",
-      input: `Napiš SEO popis a článek o hře ${title} pro český gaming web.`
+      input: `Napiš SEO článek o hře ${title} pro český gaming web. 800 slov.`
     })
   });
 
@@ -60,6 +60,7 @@ async function generateContent(title) {
   };
 }
 
+// API JSON
 app.get("/api/game/:title", async (req, res) => {
   const title = req.params.title;
   const slug = slugify(title);
@@ -83,6 +84,76 @@ app.get("/api/game/:title", async (req, res) => {
   res.json(game);
 });
 
-initDB().then(() => {
-  app.listen(PORT, () => console.log("Server running on port", PORT));
+// 🔥 SEO PAGE
+app.get("/hra/:slug", async (req, res) => {
+  const slug = req.params.slug;
+  const game = await db.get("SELECT * FROM games WHERE slug = ?", slug);
+
+  if (!game) {
+    res.send("Hra nenalezena");
+    return;
+  }
+
+  const html = `
+  <!DOCTYPE html>
+  <html lang="cs">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${game.title} | TheHardwareGuru</title>
+  <meta name="description" content="${game.description.replace(/"/g,"")}">
+  <link rel="canonical" href="https://thehardwareguru.cz/hra/${game.slug}">
+
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"Article",
+    "headline":"${game.title}",
+    "description":"${game.description.replace(/"/g,"")}",
+    "author":{"@type":"Person","name":"TheHardwareGuru"},
+    "publisher":{"@type":"Organization","name":"TheHardwareGuru"}
+  }
+  </script>
+
+  <style>
+  body{background:#05070f;color:#fff;font-family:Arial;max-width:900px;margin:60px auto;padding:20px;line-height:1.7}
+  h1{color:#00ffe1}
+  a{color:#00ffe1}
+  </style>
+  </head>
+  <body>
+
+  <h1>${game.title}</h1>
+  <p><a href="https://thehardwareguru.cz">← zpět na stream</a></p>
+  <div>${game.article.replace(/\n/g,"<br>")}</div>
+
+  </body>
+  </html>
+  `;
+
+  res.send(html);
+});
+
+// sitemap
+app.get("/sitemap.xml", async (req,res)=>{
+  const games = await db.all("SELECT slug FROM games");
+
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+
+  games.forEach(g=>{
+    xml+=`
+    <url>
+      <loc>https://thehardwareguru.cz/hra/${g.slug}</loc>
+    </url>`;
+  });
+
+  xml += "</urlset>";
+
+  res.header("Content-Type","application/xml");
+  res.send(xml);
+});
+
+initDB().then(()=>{
+  app.listen(PORT, ()=>console.log("Server running",PORT));
 });
