@@ -16,23 +16,33 @@ const pool = new Pool({
  ssl: { rejectUnauthorized: false }
 });
 
-// ROOT
-app.get("/", (req,res)=>{
- res.send("THG BACKEND OK");
-});
+// ---------- INIT DB SAFE ----------
+async function initDB(){
+ await pool.query(`
+ CREATE TABLE IF NOT EXISTS articles(
+  id SERIAL PRIMARY KEY,
+  title TEXT,
+  slug TEXT UNIQUE,
+  article TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+ )
+ `);
+}
+initDB();
 
-// ---------- LIVE GAME (TAHÁ POSLEDNÍ ČLÁNEK Z DB) ----------
+// ROOT
+app.get("/", (req,res)=> res.send("THG BACKEND RUNNING"));
+
+// ---------- LIVE ----------
 app.get("/api/live", async (req,res)=>{
  try{
-   const r = await pool.query(
-    "SELECT title, article FROM articles ORDER BY id DESC LIMIT 1"
-   );
+   const r = await pool.query("SELECT title, article FROM articles ORDER BY id DESC LIMIT 1");
 
    if(r.rows.length===0){
      return res.json({
        live:false,
-       title:"Stream offline",
-       description:"Čekám na první stream."
+       title:"Žádná hra zatím",
+       description:"Čekám na první vygenerovaný článek"
      });
    }
 
@@ -45,20 +55,19 @@ app.get("/api/live", async (req,res)=>{
  }catch(e){
    res.json({
      live:false,
-     title:"Chyba DB",
-     description:""
+     title:"DB offline",
+     description:"Databáze zatím prázdná"
    });
  }
 });
 
-// ---------- DETAIL HRY ----------
+// ---------- GAME ----------
 app.get("/api/game/:title", async(req,res)=>{
- const title=req.params.title;
-
  try{
+   const title=req.params.title;
    const r=await pool.query(
-    "SELECT article FROM articles WHERE LOWER(title)=LOWER($1) LIMIT 1",
-    [title]
+     "SELECT article FROM articles WHERE LOWER(title)=LOWER($1) LIMIT 1",
+     [title]
    );
 
    if(r.rows.length===0){
@@ -74,19 +83,20 @@ app.get("/api/game/:title", async(req,res)=>{
 // ---------- SLUG ----------
 function slugify(t){
  return t.toLowerCase()
-  .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-  .replace(/[^a-z0-9]+/g,"-")
-  .replace(/(^-|-$)/g,"");
+ .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+ .replace(/[^a-z0-9]+/g,"-")
+ .replace(/(^-|-$)/g,"");
 }
 
 // ---------- GENERATOR ----------
-function generateTopics(){
- const month=new Date().toLocaleString("cs",{month:"long"});
- const year=new Date().getFullYear();
+function topics(){
+ const d=new Date();
+ const month=d.toLocaleString("cs",{month:"long"});
+ const year=d.getFullYear();
  const genres=["RPG","open world","stealth","FPS","survival","horror"];
  const big=["GTA","Skyrim","Elden Ring","Witcher","Cyberpunk"];
 
- function pick(a){return a[Math.floor(Math.random()*a.length)]}
+ const pick=a=>a[Math.floor(Math.random()*a.length)];
 
  return [
   `Nejlepší ${pick(genres)} hry ${month} ${year}`,
@@ -98,19 +108,19 @@ function generateTopics(){
  ];
 }
 
-async function saveArticle(title){
+async function save(title){
  const slug=slugify(title);
- const exists=await pool.query("SELECT id FROM articles WHERE slug=$1",[slug]);
- if(exists.rows.length>0) return;
+ const e=await pool.query("SELECT id FROM articles WHERE slug=$1",[slug]);
+ if(e.rows.length>0) return;
 
  const content=`
 <h1>${title}</h1>
-<p>Kompletní přehled her a gameplay. Sleduj TheHardwareGuru živě.</p>
-<p><a href="https://kick.com/thehardwareguru" target="_blank">▶ Sledovat stream</a></p>
+<p>Aktuální přehled her a gameplay.</p>
+<p><a href="https://kick.com/thehardwareguru" target="_blank">▶ Sleduj stream</a></p>
 `;
 
  await pool.query(
- "INSERT INTO articles(title,slug,article,created_at) VALUES($1,$2,$3,NOW())",
+ "INSERT INTO articles(title,slug,article) VALUES($1,$2,$3)",
  [title,slug,content]
  );
 }
@@ -118,9 +128,9 @@ async function saveArticle(title){
 // ---------- CRON ----------
 app.get("/cron/daily", async(req,res)=>{
  try{
-  const topics=generateTopics();
-  for(const t of topics){ await saveArticle(t); }
-  res.send("OK generated "+topics.length);
+  const t=topics();
+  for(const x of t){ await save(x); }
+  res.send("OK generated "+t.length);
  }catch(e){
   res.send("cron error");
  }
@@ -132,14 +142,12 @@ app.get("/sitemap.xml", async(req,res)=>{
   const r=await pool.query("SELECT slug FROM articles ORDER BY id DESC LIMIT 5000");
   const urls=r.rows.map(x=>`<url><loc>https://thehardwareguru.cz/top/${x.slug}</loc></url>`).join("");
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
-  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${urls}
-  </urlset>`;
+  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
   res.header("Content-Type","application/xml");
   res.send(xml);
- }catch(e){
+ }catch{
   res.send("<urlset></urlset>");
  }
 });
 
-app.listen(PORT,()=>console.log("THG LIVE FIX RUNNING",PORT));
+app.listen(PORT,()=>console.log("DB SAFE BACKEND RUNNING",PORT));
