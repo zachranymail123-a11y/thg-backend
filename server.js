@@ -59,7 +59,7 @@ async function generateArticle(lang){
 <h2>🎮 WATCH LIVE GAMEPLAY</h2>
 <p>TheHardwareGuru streamuje nové hry každý den.</p>
 <a href="https://kick.com/thehardwareguru" style="display:inline-block;margin:10px;padding:14px 26px;background:#00ff88;color:#000;font-weight:bold;border-radius:8px;text-decoration:none;">WATCH LIVE ON KICK</a>
-<a href="https://youtube.com/@thehardwareguru" style="display:inline-block;margin:10px;padding:14px 26px;background:#ff0033;color:#fff;font-weight:bold;border-radius:8px;text-decoration:none;">YouTube Gameplay</a>
+<a href="https://youtube.com/@TheHardwareGuru_Czech" style="display:inline-block;margin:10px;padding:14px 26px;background:#ff0033;color:#fff;font-weight:bold;border-radius:8px;text-decoration:none;">YouTube Gameplay</a>
 </div>
 
 <h2>Overview</h2>
