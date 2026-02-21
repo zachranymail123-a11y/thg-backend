@@ -9,3 +9,9 @@ from = "/hra/*"
 to = "https://thg-backend-production.up.railway.app/hra/:splat"
 status = 200
 force = true
+
+[[redirects]]
+from = "/sitemap.xml"
+to = "https://thg-backend-production.up.railway.app/sitemap.xml"
+status = 200
+force = true
