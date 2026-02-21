@@ -1,7 +1,7 @@
 export async function handler() {
 
   const KICK = "thehardwareguru";
-  const YT = "UCxxxxxxxx"; // doplň svůj channel ID
+  const YT = "UCgDdszBhhpqkNQc6t4YOCNw"; // doplň svůj channel ID
 
   let title = "Neznámá hra";
   let youtube = null;
