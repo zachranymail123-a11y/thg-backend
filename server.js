@@ -2,8 +2,10 @@ import express from "express";
 import fetch from "node-fetch";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
@@ -45,7 +47,7 @@ async function generateContent(title) {
     },
     body: JSON.stringify({
       model: "gpt-4.1-mini",
-      input: `Napiš SEO popis a krátký článek (600 slov) o hře ${title} pro český gaming web. Použij nadpisy a optimalizuj pro Google.`
+      input: `Napiš SEO popis a článek o hře ${title} pro český gaming web.`
     })
   });
 
@@ -53,7 +55,7 @@ async function generateContent(title) {
   const text = data.output?.[0]?.content?.[0]?.text || title;
 
   return {
-    description: text.substring(0, 300),
+    description: text.substring(0, 400),
     article: text
   };
 }
@@ -79,25 +81,6 @@ app.get("/api/game/:title", async (req, res) => {
   }
 
   res.json(game);
-});
-
-app.get("/sitemap.xml", async (req, res) => {
-  const games = await db.all("SELECT slug FROM games");
-
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>
-  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
-
-  games.forEach(g => {
-    xml += `
-    <url>
-      <loc>https://thehardwareguru.cz/hra/${g.slug}</loc>
-    </url>`;
-  });
-
-  xml += "</urlset>";
-
-  res.header("Content-Type", "application/xml");
-  res.send(xml);
 });
 
 initDB().then(() => {
