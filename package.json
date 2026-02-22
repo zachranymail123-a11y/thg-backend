@@ -1,6 +1,6 @@
 {
-  "name": "thg-final-engine",
-  "version": "10.0.0",
+  "name": "thg-hardfix-engine",
+  "version": "11.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
