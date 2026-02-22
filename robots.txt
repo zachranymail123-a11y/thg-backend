@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://thehardwareguru.cz/sitemap.xml
-Host: https://thehardwareguru.cz
+Sitemap: https://thehardwareguru.cz/sitemap-index.xml
