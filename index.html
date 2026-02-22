@@ -1,53 +1,64 @@
+
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TheHardwareGuru</title>
+<title>THEHARDWAREGURU</title>
+<meta name="description" content="Chill gameplay. Real reactions. Community driven. Watch live on Kick and YouTube.">
 <style>
-body{margin:0;background:#07070a;color:#fff;font-family:Arial}
-.hero{padding:80px;text-align:center;background:radial-gradient(circle,#111,#000)}
-.btn{display:inline-block;background:#00ffee;color:#000;padding:16px 26px;border-radius:10px;margin:8px;text-decoration:none;font-weight:bold}
-.section{max-width:1000px;margin:auto;padding:60px 20px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
-.card{background:#111;padding:20px;border-radius:12px}
-img{width:100%;border-radius:10px}
+body{margin:0;font-family:Arial;background:#070a14;color:white}
+.hero{height:90vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+background:linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.8)),url('https://images.unsplash.com/photo-1605902711622-cfb43c4437d1') center/cover no-repeat;}
+h1{font-size:64px;background:linear-gradient(90deg,#00ffee,#a855f7);-webkit-background-clip:text;color:transparent;margin:0}
+.subtitle{margin:20px 0;color:#ccc}
+.btn{display:inline-block;margin:10px;padding:16px 32px;border-radius:30px;text-decoration:none;font-weight:bold}
+.primary{background:#00ffee;color:#000}
+.secondary{background:#a855f7;color:#fff}
+.section{padding:80px 20px;max-width:1200px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:30px}
+.card{background:#111827;padding:20px;border-radius:20px}
+img{width:100%;border-radius:16px}
 </style>
 </head>
 <body>
 
 <div class="hero">
 <h1>THEHARDWAREGURU</h1>
-<div id="live"></div>
-<a class="btn" href="https://kick.com/thehardwareguru">WATCH LIVE</a>
-<a class="btn" href="https://youtube.com">YOUTUBE</a>
+<div class="subtitle">Chill gameplay. Real reactions. No tryhard. Community driven.</div>
+<a class="btn primary" href="https://kick.com/thehardwareguru">WATCH LIVE</a>
+<a class="btn secondary" href="https://youtube.com">YOUTUBE CHANNEL</a>
 </div>
 
 <div class="section">
-<h2>Last Stream</h2>
-<div id="kick"></div>
+<h2>LAST STREAM</h2>
+<div id="kick" class="card"></div>
 </div>
 
 <div class="section">
-<h2>YouTube Shorts</h2>
+<h2>YOUTUBE SHORTS</h2>
 <div id="shorts" class="grid"></div>
 </div>
 
 <script>
 const API="https://YOUR_BACKEND_URL";
 
-fetch(API+"/api/live").then(r=>r.json()).then(d=>{
- if(d?.title) document.getElementById("live").innerText=d.title;
-});
-
-fetch(API+"/api/kick-last").then(r=>r.json()).then(d=>{
+fetch(API+"/api/kick-last")
+.then(r=>r.json())
+.then(d=>{
  document.getElementById("kick").innerHTML=
- `<div class="card"><img src="${d.thumbnail}"><h3>${d.title}</h3><a class="btn" href="${d.url}">Watch</a></div>`;
+ `<img src="${d.thumbnail}"><h3>${d.title}</h3><a class='btn primary' href='${d.url}'>Watch Replay</a>`;
 });
 
-fetch(API+"/api/shorts").then(r=>r.json()).then(list=>{
+fetch(API+"/api/shorts")
+.then(r=>r.json())
+.then(list=>{
  document.getElementById("shorts").innerHTML=list.map(v=>
- `<div class="card"><img src="${v.thumbnail}"><h4>${v.title}</h4><a class="btn" href="${v.url}">Watch</a></div>`
+ `<div class="card">
+   <img src="${v.thumbnail}">
+   <h3>${v.title}</h3>
+   <a class="btn secondary" href="${v.url}">Watch Short</a>
+ </div>`
  ).join("");
 });
 </script>
