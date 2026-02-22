@@ -1,6 +1,6 @@
 {
-  "name": "thg-trend-engine-final",
-  "version": "7.0.0",
+  "name": "thg-v8-trend-final",
+  "version": "8.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

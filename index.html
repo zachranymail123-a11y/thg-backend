@@ -3,53 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TheHardwareGuru | Gaming Magazine</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+<title>TheHardwareGuru | Live Gaming</title>
 <style>
-body{margin:0;font-family:Orbitron,Arial;background:#0b0f14;color:#fff;text-align:center}
-header{padding:50px 20px;background:linear-gradient(90deg,#111827,#020617)}
-h1{font-size:44px;margin:0;color:#00ffcc}
-.container{padding:40px 20px;max-width:1000px;margin:auto}
-.btn{display:inline-block;margin:10px;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold}
+body{margin:0;background:#0b0f14;color:#fff;font-family:Arial}
+.container{max-width:1000px;margin:auto;padding:40px}
+h1{font-size:42px;margin-bottom:10px}
+.live{color:#00ff88;font-weight:bold}
+.box{background:#111827;padding:25px;border-radius:14px;margin:30px 0}
+.btn{display:inline-block;padding:14px 28px;margin:10px;border-radius:8px;text-decoration:none;font-weight:bold}
 .kick{background:#00ff88;color:#000}
 .yt{background:#ff0033;color:#fff}
 .discord{background:#5865F2;color:#fff}
-.box{margin:25px auto;padding:25px;background:#111827;border-radius:16px}
-.status{font-size:20px;margin:20px}
-.online{color:#00ff88}
-.offline{color:#888}
 </style>
 </head>
 <body>
-<header>
-<h1>THEHARDWAREGURU</h1>
-<div id="status" class="status">Načítám stream...</div>
-<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">WATCH LIVE ON KICK</a>
-<a class="btn yt" href="https://youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
-<a class="btn discord" href="#" target="_blank">Discord</a>
-</header>
+
 <div class="container">
-<div class="box"><h2>Aktuálně streamuji</h2><div id="game">Načítám...</div></div>
-<div class="box"><h2>Popis streamu</h2><div id="desc"></div></div>
+<h1>TheHardwareGuru</h1>
+<div id="liveStatus" class="live">LIVE</div>
+
+<div class="box">
+<h2>🎮 Aktuálně streamuji:</h2>
+<h3 id="streamTitle">Načítám...</h3>
+<p id="streamDesc"></p>
+<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">WATCH LIVE ON KICK</a>
+<a class="btn yt" href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
+<a class="btn discord" href="#" target="_blank">Discord</a>
 </div>
+
+<div class="box">
+<h2>👾 O mně</h2>
+<p>Jsem 45 let starý geek, který miluje PC hry, technologii a otevřený chat s komunitou. Nejsem žádný tryhard – hraju pro zábavu, atmosféru a interakci s lidmi. Stream je místo, kde se bavíme, řešíme herní novinky a testujeme nové věci bez filtru.</p>
+<p>V chatu mám aktivní AI diváka, který reaguje, komentuje a dělá stream ještě zábavnější. Je to kombinace klasického gamer streamu a moderní AI show – energie, humor a reálné hraní bez přetvářky.</p>
+</div>
+</div>
+
 <script>
-async function load(){
+async function loadLive(){
  try{
-   const r=await fetch("https://YOUR-RAILWAY-URL/api/live",{cache:"no-store"});
-   const d=await r.json();
-   if(!d || !d.title){
-     document.getElementById("status").innerHTML='<span class="offline">OFFLINE</span>';
-     document.getElementById("game").innerText="Momentálně offline.";
-     return;
-   }
-   document.getElementById("status").innerHTML='<span class="online">LIVE NOW</span>';
-   document.getElementById("game").innerText=d.title;
-   document.getElementById("desc").innerText=d.description||"";
- }catch{
-   document.getElementById("status").innerHTML='<span class="offline">OFFLINE</span>';
+  const res = await fetch("https://thg-backend-production.up.railway.app/api/live");
+  const data = await res.json();
+  document.getElementById("streamTitle").innerText = data.title || "TheHardwareGuru Stream";
+  document.getElementById("streamDesc").innerText = data.description || "";
+  document.getElementById("liveStatus").innerText = "LIVE";
+ }catch(e){
+  document.getElementById("streamTitle").innerText = "TheHardwareGuru Stream";
+  document.getElementById("liveStatus").innerText = "";
  }
 }
-load();
+loadLive();
 </script>
+
 </body>
 </html>
