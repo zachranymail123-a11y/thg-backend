@@ -7,9 +7,12 @@ const fetch = (...args)=>import('node-fetch').then(({default:fetch})=>fetch(...a
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const YOUTUBE_URL = "https://www.youtube.com/@TheHardwareGuru_Czech";
+const KICK_URL = "https://kick.com/thehardwareguru";
+
 let pool=null;
 if(process.env.DATABASE_URL){
-  pool=new Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}});
+ pool=new Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}});
 }
 
 async function q(sql,p=[]){
@@ -17,9 +20,8 @@ async function q(sql,p=[]){
  try{return await pool.query(sql,p);}catch(e){return {rows:[]};}
 }
 
-async function hardReset(){
- await q("DROP TABLE IF EXISTS articles");
- await q(`CREATE TABLE articles(
+async function init(){
+ await q(`CREATE TABLE IF NOT EXISTS articles(
    id SERIAL PRIMARY KEY,
    title TEXT,
    slug TEXT UNIQUE,
@@ -32,14 +34,13 @@ async function hardReset(){
    description TEXT,
    created_at TIMESTAMP DEFAULT NOW()
  )`);
- await q(`CREATE TABLE IF NOT EXISTS last_game(
+ await q(`CREATE TABLE IF NOT EXISTS last_title(
    id SERIAL PRIMARY KEY,
-   game TEXT,
+   title TEXT,
    updated TIMESTAMP DEFAULT NOW()
  )`);
 }
-
-hardReset();
+init();
 
 function extractGame(title){
  if(!title) return null;
@@ -51,6 +52,7 @@ async function getKickTitle(){
    const r=await fetch("https://kick.com/api/v2/channels/thehardwareguru");
    const j=await r.json();
    if(j?.livestream?.session_title) return j.livestream.session_title;
+   if(j?.previous_livestreams?.[0]?.session_title) return j.previous_livestreams[0].session_title;
  }catch(e){}
  return null;
 }
@@ -65,20 +67,20 @@ async function getYouTubeLast(){
  return null;
 }
 
-async function detectGame(){
+async function getCurrentTitle(){
  let title=await getKickTitle();
  if(title){
-   const g=extractGame(title);
-   if(g){ await q("INSERT INTO last_game(game) VALUES($1)",[g]); return g;}
+   await q("INSERT INTO last_title(title) VALUES($1)",[title]);
+   return title;
  }
  title=await getYouTubeLast();
  if(title){
-   const g=extractGame(title);
-   if(g){ await q("INSERT INTO last_game(game) VALUES($1)",[g]); return g;}
+   await q("INSERT INTO last_title(title) VALUES($1)",[title]);
+   return title;
  }
- const r=await q("SELECT game FROM last_game ORDER BY updated DESC LIMIT 1");
- if(r.rows.length) return r.rows[0].game;
- return null;
+ const r=await q("SELECT title FROM last_title ORDER BY updated DESC LIMIT 1");
+ if(r.rows.length) return r.rows[0].title;
+ return "TheHardwareGuru Stream";
 }
 
 async function getDescription(game){
@@ -86,33 +88,69 @@ async function getDescription(game){
  const r=await q("SELECT description FROM game_cache WHERE game=$1",[game]);
  if(r.rows.length) return r.rows[0].description;
 
- const desc=`${game} je aktuálně streamovaná hra na kanále TheHardwareGuru. Sleduj živé hraní, reálné reakce a kompletní průchod bez střihu přímo na streamu.`;
+ const desc=`${game} je aktuálně streamovaná hra na kanále TheHardwareGuru. Sleduj živé hraní, nové buildy a reálné reakce přímo na streamu.`;
  await q("INSERT INTO game_cache(game,description) VALUES($1,$2)",[game,desc]);
  return desc;
 }
 
 app.get("/api/live",async(req,res)=>{
- const game=await detectGame();
+ const title=await getCurrentTitle();
+ const game=extractGame(title);
  const desc=await getDescription(game);
  res.json({
-  live:true,
-  title:game,
+  title,
   description:desc,
-  youtube:"https://www.youtube.com/@TheHardwareGuru_Czech",
-  kick:"https://kick.com/thehardwareguru"
+  youtube:YOUTUBE_URL,
+  kick:KICK_URL
  });
 });
 
-const games=["GTA 6","Cyberpunk 2077","Elden Ring","Alan Wake 2","Baldur's Gate 3","Silent Hill","Starfield","Red Dead Redemption 2"];
-const topics=["Complete Guide 2026","Story Analysis","Gameplay Breakdown","New Update Overview","Why It’s Trending"];
+// -------- TREND ENGINE --------
 
-function rand(a){return a[Math.floor(Math.random()*a.length)]}
+async function getSteamTrending(){
+ try{
+  const html = await (await fetch("https://store.steampowered.com/search/?filter=topsellers")).text();
+  const matches=[...html.matchAll(/data-ds-appid=".*?".*?<span class="title">(.*?)<\/span>/g)];
+  return matches.slice(0,20).map(m=>m[1]);
+ }catch(e){return [];}
+}
 
-async function generateArticle(){
- const game=rand(games);
- const topic=rand(topics);
- const title=`${game} ${topic}`;
- const slug=slugify(title+"-"+Date.now(),{lower:true,strict:true});
+async function getGoogleTrending(){
+ return ["GTA 6","Cyberpunk 2077","Palworld","Warzone","Elden Ring","Starfield","Helldivers 2"];
+}
+
+async function getYouTubeTrending(){
+ try{
+  const html=await (await fetch("https://www.youtube.com/feed/trending")).text();
+  const matches=[...html.matchAll(/"title":\{"runs":\[\{"text":"([^"]+)/g)];
+  return matches.slice(0,15).map(m=>m[1]);
+ }catch(e){return [];}
+}
+
+function uniq(arr){
+ return [...new Set(arr.map(x=>x.trim()))].filter(Boolean);
+}
+
+async function collectTrends(){
+ const steam=await getSteamTrending();
+ const google=await getGoogleTrending();
+ const yt=await getYouTubeTrending();
+ return uniq([...steam,...google,...yt]).slice(0,40);
+}
+
+async function existsTitle(t){
+ const r=await q("SELECT id FROM articles WHERE title=$1",[t]);
+ return r.rows.length>0;
+}
+
+async function generateArticle(topic,lang){
+ const title = lang==="cz"
+  ? `${topic} – novinky, gameplay a informace`
+  : `${topic} – gameplay, updates and details`;
+
+ if(await existsTitle(title)) return;
+
+ const slug=slugify(title,{lower:true,strict:true});
 
  const html=`
 <!DOCTYPE html>
@@ -121,10 +159,9 @@ async function generateArticle(){
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
-<link rel="canonical" href="https://thehardwareguru.cz/top/${slug}">
 <style>
 body{background:#0b0f14;color:#fff;font-family:Arial;padding:40px;max-width:900px;margin:auto;line-height:1.7}
-h1{font-size:36px}
+h1{font-size:34px}
 h2{margin-top:40px}
 .cta{margin:40px 0;padding:25px;background:#111827;border-radius:14px;text-align:center}
 .btn{display:inline-block;margin:10px;padding:14px 26px;font-weight:bold;border-radius:8px;text-decoration:none}
@@ -137,37 +174,44 @@ h2{margin-top:40px}
 <h1>${title}</h1>
 
 <div class="cta">
-<h2>🎮 WATCH LIVE GAMEPLAY</h2>
-<a href="https://kick.com/thehardwareguru" class="btn kick">WATCH LIVE ON KICK</a>
-<a href="https://www.youtube.com/@TheHardwareGuru_Czech" class="btn yt">YouTube</a>
+<h2>🎮 Sleduj live gameplay</h2>
+<a href="${KICK_URL}" class="btn kick">WATCH LIVE ON KICK</a>
+<a href="${YOUTUBE_URL}" class="btn yt">YouTube</a>
 </div>
 
-<h2>Overview</h2>
-<p>${game} patří mezi nejdiskutovanější hry současnosti. Tento článek přináší detailní rozbor herních mechanik, aktualizací a důvodů, proč si titul drží vysokou popularitu mezi hráči.</p>
+<h2>O hře</h2>
+<p>${topic} patří mezi aktuálně trendující herní témata. Tento článek přináší přehled novinek, gameplay informací a důvodů, proč titul sleduje herní komunita.</p>
 
-<h2>Gameplay & Mechanics</h2>
-<p>Hra nabízí propracovaný příběh, moderní herní prvky a silnou atmosféru. Každý update přináší nové výzvy a obsah, který udržuje komunitu aktivní.</p>
-
-<h2>Why Watch It Live</h2>
-<p>Sledování živého hraní poskytuje autentický pohled na herní mechaniky a reakce bez střihu. TheHardwareGuru streamuje pravidelně a přináší kompletní průchody a testy novinek.</p>
+<h2>Proč hra trenduje</h2>
+<p>Hra získává popularitu díky novým updateům, komunitě a streamům. Sleduj živé hraní pro autentický zážitek bez střihu.</p>
 
 <div class="cta">
-<h2>🔥 Sleduj stream živě</h2>
-<a href="https://kick.com/thehardwareguru" class="btn kick">WATCH LIVE</a>
+<h2>🔥 Sleduj stream TheHardwareGuru</h2>
+<a href="${KICK_URL}" class="btn kick">WATCH LIVE</a>
+<a href="${YOUTUBE_URL}" class="btn yt">YouTube</a>
 </div>
 
 </body>
-</html>
-`;
+</html>`;
 
  await q("INSERT INTO articles(title,slug,article) VALUES($1,$2,$3)",[title,slug,html]);
 }
 
 app.get("/cron/daily",async(req,res)=>{
- for(let i=0;i<12;i++){
-  await generateArticle();
+ const trends=await collectTrends();
+ let used=0;
+ for(const t of trends){
+  if(used>=6) break;
+  await generateArticle(t,"cz");
+  used++;
  }
- res.send("generated 12 magazine articles");
+ used=0;
+ for(const t of trends){
+  if(used>=6) break;
+  await generateArticle(t,"en");
+  used++;
+ }
+ res.send("generated 12 trend articles");
 });
 
 app.get("/top/:slug",async(req,res)=>{
@@ -188,4 +232,4 @@ app.get("/sitemap.xml",async(req,res)=>{
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
 });
 
-app.listen(PORT,"0.0.0.0",()=>console.log("FINAL PRODUCTION RUNNING",PORT));
+app.listen(PORT,"0.0.0.0",()=>console.log("TREND ENGINE RUNNING",PORT));
