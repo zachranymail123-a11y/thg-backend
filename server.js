@@ -11,17 +11,31 @@ app.use(express.json());
 
 const PORT=process.env.PORT||3000;
 
-// ===== DB CONNECT =====
 const pool=new Pool({
  connectionString:process.env.DATABASE_URL,
  ssl:{rejectUnauthorized:false}
 });
 
-// ===== FORCE DB INIT =====
-async function initDB(){
+// ===== FORCE CREATE TABLE =====
+async function ensureTable(){
+ await pool.query(`
+ CREATE TABLE IF NOT EXISTS articles(
+  id SERIAL PRIMARY KEY,
+  title TEXT,
+  slug TEXT UNIQUE,
+  game TEXT UNIQUE,
+  content TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+ );`);
+}
+ensureTable();
+
+// ===== HARD DB RESET =====
+app.get('/db-fix', async(req,res)=>{
  try{
+  await pool.query(`DROP TABLE IF EXISTS articles;`);
   await pool.query(`
-  CREATE TABLE IF NOT EXISTS articles(
+  CREATE TABLE articles(
    id SERIAL PRIMARY KEY,
    title TEXT,
    slug TEXT UNIQUE,
@@ -29,25 +43,24 @@ async function initDB(){
    content TEXT,
    created_at TIMESTAMP DEFAULT NOW()
   );`);
-  console.log("DB READY");
+  res.send("DB RESET OK");
  }catch(e){
-  console.log("DB INIT ERROR:",e.message);
+  res.send("DB RESET ERROR: "+e.message);
  }
-}
-initDB();
+});
 
-// ===== DEBUG DB =====
-app.get('/db-test',async(req,res)=>{
+// ===== DB TEST =====
+app.get('/db-test', async(req,res)=>{
  try{
   const r=await pool.query("SELECT COUNT(*) FROM articles");
-  res.send("DB OK. Articles count: "+r.rows[0].count);
+  res.send("DB OK. rows: "+r.rows[0].count);
  }catch(e){
   res.send("DB ERROR: "+e.message);
  }
 });
 
 // ===== SITEMAP =====
-app.get('/sitemap.xml',async(req,res)=>{
+app.get('/sitemap.xml', async(req,res)=>{
  try{
   const r=await pool.query("SELECT slug FROM articles ORDER BY created_at DESC");
   const urls=r.rows.map(x=>`<url><loc>https://thehardwareguru.cz/top/${x.slug}</loc></url>`).join("");
@@ -57,7 +70,7 @@ app.get('/sitemap.xml',async(req,res)=>{
  }
 });
 
-// ===== REAL GAME LIST =====
+// ===== GAME SOURCE =====
 async function getGames(){
  try{
   const r=await axios.get("https://api.steampowered.com/ISteamChartsService/GetMostPlayedGames/v1/");
@@ -78,7 +91,7 @@ async function getGames(){
 }
 
 // ===== CRON =====
-app.get('/cron/daily',async(req,res)=>{
+app.get('/cron/daily', async(req,res)=>{
  try{
   const games=await getGames();
   let created=0;
@@ -87,14 +100,14 @@ app.get('/cron/daily',async(req,res)=>{
   for(let g of games){
 
    const exists=await pool.query("SELECT id FROM articles WHERE game=$1",[g]);
-   if(exists.rows.length){log.push("SKIP "+g);continue;}
+   if(exists.rows.length){log.push("skip "+g);continue;}
 
    const title=`${g} – novinky, gameplay a stream`;
    const slug=slugify(title,{lower:true,strict:true});
 
    const content=`<h2>${g}</h2>
    <p>Aktuální novinky a gameplay ze světa ${g}.</p>
-   <p>Sleduj live stream TheHardwareGuru.</p>`;
+   <p>Sleduj TheHardwareGuru live.</p>`;
 
    await pool.query(
    "INSERT INTO articles(title,slug,game,content) VALUES($1,$2,$3,$4)",
@@ -102,23 +115,19 @@ app.get('/cron/daily',async(req,res)=>{
    );
 
    created++;
-   log.push("CREATED "+g);
+   log.push("created "+g);
    if(created>=6) break;
   }
 
-  res.json({
-   status:"OK",
-   created,
-   log
-  });
+  res.json({status:"OK",created,log});
 
  }catch(e){
   res.send("CRON ERROR: "+e.message);
  }
 });
 
-// ===== ARTICLE PAGE =====
-app.get('/top/:slug',async(req,res)=>{
+// ===== ARTICLE =====
+app.get('/top/:slug', async(req,res)=>{
  try{
   const r=await pool.query("SELECT * FROM articles WHERE slug=$1",[req.params.slug]);
   if(!r.rows.length) return res.send("Not found");
@@ -130,7 +139,6 @@ app.get('/top/:slug',async(req,res)=>{
   <html>
   <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>${a.title}</title>
   <link rel="canonical" href="${canonical}" />
   <meta name="robots" content="index, follow" />
@@ -140,7 +148,7 @@ app.get('/top/:slug',async(req,res)=>{
   ${a.content}
   <br><br>
   <a href="https://kick.com/thehardwareguru">KICK</a> |
-  <a href="https://www.youtube.com/@TheHardwareGuru_Czech">YOUTUBE</a> |
+  <a href="https://www.youtube.com/@TheHardwareGuru_Czech">YT</a> |
   <a href="https://discord.com/invite/n7xThr8">DISCORD</a>
   </body></html>
   `);
@@ -150,4 +158,4 @@ app.get('/top/:slug',async(req,res)=>{
  }
 });
 
-app.listen(PORT,()=>console.log("HARD FIX ENGINE RUNNING",PORT));
+app.listen(PORT,()=>console.log("FINAL ENGINE WITH DB FIX RUNNING",PORT));
