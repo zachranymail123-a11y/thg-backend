@@ -1,6 +1,6 @@
 {
-  "name": "thg-news-scraper-engine",
-  "version": "10.0.0",
+  "name": "thg-engine-fix",
+  "version": "11.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
