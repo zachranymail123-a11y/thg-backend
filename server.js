@@ -21,7 +21,6 @@ async function q(sql,p=[]){
  try{return await pool.query(sql,p);}catch(e){return {rows:[]};}
 }
 
-// ensure games table columns
 async function init(){
  await q(`CREATE TABLE IF NOT EXISTS games(
   id SERIAL PRIMARY KEY,
@@ -33,7 +32,7 @@ async function init(){
 }
 init();
 
-// -------- scrape real topics ----------
+// -------- SOURCES --------
 async function steam(){
  try{
   const html=await (await fetch("https://store.steampowered.com/search/?filter=popularnew")).text();
@@ -42,41 +41,56 @@ async function steam(){
  }catch(e){return [];}
 }
 
-async function ign(){
+async function twitch(){
  try{
-  const html=await (await fetch("https://www.ign.com/games")).text();
+  const html=await (await fetch("https://twitchtracker.com/games")).text();
   const $=cheerio.load(html);
   let arr=[];
-  $("h3").each((i,el)=>{
+  $("a").each((i,el)=>{
    const t=$(el).text().trim();
-   if(t.length>3&&t.length<60) arr.push(t);
+   if(t.length>2&&t.length<40) arr.push(t);
   });
-  return arr;
+  return arr.slice(0,20);
  }catch(e){return [];}
 }
 
-function uniq(a){return [...new Set(a.map(x=>x.trim()))].filter(Boolean)}
+async function youtube(){
+ try{
+  const html=await (await fetch("https://www.youtube.com/feed/gaming")).text();
+  const matches=[...html.matchAll(/"title":\{"runs":\[\{"text":"([^"]+)/g)];
+  return matches.slice(0,20).map(m=>m[1]);
+ }catch(e){return [];}
+}
+
+async function reddit(){
+ try{
+  const html=await (await fetch("https://www.reddit.com/r/gaming/")).text();
+  const matches=[...html.matchAll(/<h3.*?>(.*?)<\/h3>/g)];
+  return matches.slice(0,20).map(m=>m[1]);
+ }catch(e){return [];}
+}
+
+function clean(a){
+ return [...new Set(a.map(x=>x.replace(/[^a-zA-Z0-9 :'-]/g,"").trim()))]
+ .filter(x=>x.length>3 && x.length<60);
+}
 
 async function collect(){
  const s=await steam();
- const i=await ign();
- return uniq([...s,...i]).slice(0,30);
+ const t=await twitch();
+ const y=await youtube();
+ const r=await reddit();
+ return clean([...s,...t,...y,...r]).slice(0,40);
 }
 
-// prevent duplicates by game name
 async function exists(title){
  const r=await q("SELECT id FROM games WHERE title=$1",[title]);
  return r.rows.length>0;
 }
 
-async function generate(title){
- if(await exists(title)) return;
-
- const slug=slugify(title,{lower:true,strict:true});
-
- const html=`<!DOCTYPE html>
-<html>
-<head>
+function articleTemplate(title){
+ return `<!DOCTYPE html>
+<html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
@@ -93,21 +107,28 @@ h1{font-size:34px}
 <h1>${title}</h1>
 
 <div class="cta">
-<h2>🎮 Sleduj live stream</h2>
+<h2>🎮 Sleduj real gameplay live</h2>
 <a href="${KICK}" class="btn k">WATCH LIVE ON KICK</a>
 <a href="${YT}" class="btn y">YouTube</a>
 </div>
 
-<p>${title} aktuálně trenduje v herní komunitě. Sleduj živé hraní, reakce a reálný gameplay přímo na streamu TheHardwareGuru.</p>
+<p>Jsem 45letý gamer co hraje tuhle hru live na streamu. Žádný tryhard, chill atmosféra, kecáme s chatem a testujeme hry v reálném čase. V chatu je i aktivní AI divák, který reaguje a dělá stream zábavnější.</p>
+
+<p>${title} teď trenduje mezi hráči a komunitou. Pokud chceš vidět reálné hraní bez přetvářky a marketingových keců, sleduj live stream.</p>
 
 <div class="cta">
-<h2>🔥 Join live community</h2>
+<h2>🔥 Přijď na live stream</h2>
 <a href="${KICK}" class="btn k">WATCH LIVE</a>
 <a href="${YT}" class="btn y">YouTube</a>
 </div>
 
 </body></html>`;
+}
 
+async function generate(title){
+ if(await exists(title)) return;
+ const slug=slugify(title,{lower:true,strict:true});
+ const html=articleTemplate(title);
  await q("INSERT INTO games(title,slug,article) VALUES($1,$2,$3)",[title,slug,html]);
 }
 
@@ -131,7 +152,7 @@ run();
 
 app.get("/cron/daily",async(req,res)=>{
  await run();
- res.send("engine for games table executed");
+ res.send("MASTER ENGINE RUN");
 });
 
 app.get("/sitemap.xml",async(req,res)=>{
@@ -147,4 +168,4 @@ app.get("/top/:slug",async(req,res)=>{
  res.send(r.rows[0].article);
 });
 
-app.listen(PORT,"0.0.0.0",()=>console.log("ENGINE FIXED FOR GAMES TABLE",PORT));
+app.listen(PORT,"0.0.0.0",()=>console.log("MASTER ENGINE RUNNING",PORT));
