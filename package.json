@@ -1,6 +1,6 @@
 {
-  "name": "thg-backend",
-  "version": "4.0.0",
+  "name": "thg-clean-backend",
+  "version": "5.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
