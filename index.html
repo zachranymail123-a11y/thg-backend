@@ -1,58 +1,52 @@
+
 <!DOCTYPE html>
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TheHardwareGuru | Live Gaming</title>
-<style>
-body{margin:0;background:#0b0f14;color:#fff;font-family:Arial}
-.container{max-width:1000px;margin:auto;padding:40px}
-h1{font-size:42px;margin-bottom:10px}
-.live{color:#00ff88;font-weight:bold}
-.box{background:#111827;padding:25px;border-radius:14px;margin:30px 0}
-.btn{display:inline-block;padding:14px 28px;margin:10px;border-radius:8px;text-decoration:none;font-weight:bold}
-.kick{background:#00ff88;color:#000}
-.yt{background:#ff0033;color:#fff}
-.discord{background:#5865F2;color:#fff}
-</style>
+<title>TheHardwareGuru – Live Gaming Hub</title>
+<link rel="stylesheet" href="style.css">
+<meta name="description" content="Chill gaming stream bez tryhardu. Sleduj live gameplay, reakce a AI chat.">
 </head>
 <body>
 
-<div class="container">
-<h1>TheHardwareGuru</h1>
-<div id="liveStatus" class="live">LIVE</div>
+<section class="hero">
+<h1>🔴 LIVE GAMING HUB</h1>
+<p>Chill stream • real gameplay • AI v chatu</p>
 
-<div class="box">
-<h2>🎮 Aktuálně streamuji:</h2>
-<h3 id="streamTitle">Načítám...</h3>
-<p id="streamDesc"></p>
-<a class="btn kick" href="https://kick.com/thehardwareguru" target="_blank">WATCH LIVE ON KICK</a>
-<a class="btn yt" href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank">YouTube</a>
-<a class="btn discord" href="#" target="_blank">Discord</a>
+<div id="liveTitle">Načítám stream...</div>
+
+<div class="buttons">
+<a href="https://kick.com/thehardwareguru" target="_blank" class="btn kick">WATCH LIVE</a>
+<a href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank" class="btn yt">YouTube</a>
+</div>
+</section>
+
+<section class="block">
+<h2>🎮 Poslední stream</h2>
+<a href="https://kick.com/thehardwareguru" target="_blank">
+<img src="https://images.unsplash.com/photo-1605902711622-cfb43c44367f?q=80&w=1200" class="thumb">
+</a>
+</section>
+
+<section class="block">
+<h2>🔥 Moments ze streamu</h2>
+<div class="shorts">
+<a href="https://www.youtube.com/@TheHardwareGuru_Czech/shorts" target="_blank"><img src="https://images.unsplash.com/photo-1616531770192-6eaea74c2456?q=80&w=400"></a>
+<a href="https://www.youtube.com/@TheHardwareGuru_Czech/shorts" target="_blank"><img src="https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=400"></a>
+<a href="https://www.youtube.com/@TheHardwareGuru_Czech/shorts" target="_blank"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=400"></a>
+</div>
+</section>
+
+<section class="block">
+<h2>O mně</h2>
+<p>45 letý gamer. Chill stream. AI v chatu. Žádný tryhard.</p>
+</section>
+
+<div class="sticky">
+<a href="https://kick.com/thehardwareguru" target="_blank">🔴 LIVE</a>
 </div>
 
-<div class="box">
-<h2>👾 O mně</h2>
-<p>Jsem 45 let starý geek, který miluje PC hry, technologii a otevřený chat s komunitou. Nejsem žádný tryhard – hraju pro zábavu, atmosféru a interakci s lidmi. Stream je místo, kde se bavíme, řešíme herní novinky a testujeme nové věci bez filtru.</p>
-<p>V chatu mám aktivní AI diváka, který reaguje, komentuje a dělá stream ještě zábavnější. Je to kombinace klasického gamer streamu a moderní AI show – energie, humor a reálné hraní bez přetvářky.</p>
-</div>
-</div>
-
-<script>
-async function loadLive(){
- try{
-  const res = await fetch("https://thg-backend-production.up.railway.app/api/live");
-  const data = await res.json();
-  document.getElementById("streamTitle").innerText = data.title || "TheHardwareGuru Stream";
-  document.getElementById("streamDesc").innerText = data.description || "";
-  document.getElementById("liveStatus").innerText = "LIVE";
- }catch(e){
-  document.getElementById("streamTitle").innerText = "TheHardwareGuru Stream";
-  document.getElementById("liveStatus").innerText = "";
- }
-}
-loadLive();
-</script>
-
+<script src="live.js"></script>
 </body>
 </html>
