@@ -4,63 +4,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TheHardwareGuru – Live Gaming</title>
-<meta name="description" content="Chill gaming stream bez tryhardu. Sleduj live gameplay, záznamy streamů a nejnovější shorts.">
+<title>TheHardwareGuru</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="hero">
-  <div class="container">
-    <h1>🔴 THEHARDWAREGURU</h1>
-    <p>Chill gameplay • Real reakce • AI v chatu • Žádný tryhard</p>
-
-    <div id="liveStatus" class="live-status">
-      Načítám live status...
-    </div>
-
-    <div class="cta-row">
-      <a href="https://kick.com/thehardwareguru" target="_blank" class="btn kick">WATCH LIVE</a>
-      <a href="https://www.youtube.com/@TheHardwareGuru_Czech" target="_blank" class="btn yt">YOUTUBE</a>
-    </div>
-  </div>
+<h1>THEHARDWAREGURU</h1>
+<p>Chill gameplay • real reakce • AI v chatu</p>
+<a href="https://kick.com/thehardwareguru" class="livebtn">🔴 WATCH LIVE</a>
 </header>
 
-<section class="section">
-  <div class="container">
-    <h2>🎮 Poslední stream (Kick)</h2>
-    <a href="https://kick.com/thehardwareguru/videos" target="_blank" class="video-card">
-      <div class="video-overlay">ZOBRAZIT ZÁZNAMY STREAMŮ</div>
-    </a>
-  </div>
+<section class="block">
+<h2>Poslední stream</h2>
+<a id="kickLink" target="_blank" class="card">Načítám...</a>
 </section>
 
-<section class="section dark">
-  <div class="container">
-    <h2>🔥 Nejnovější Shorts</h2>
-    <div id="shortsGrid" class="shorts-grid">
-      Načítám shorts...
-    </div>
-  </div>
+<section class="block">
+<h2>Poslední shorts</h2>
+<div id="shorts" class="shorts"></div>
 </section>
 
-<section class="section">
-  <div class="container about">
-    <h2>O mně</h2>
-    <p>
-      45 letý gamer a geek. Hraju trending hry, testuju novinky a kecám s chatem.
-      Stream je pohodový, komunitní a bez tryhard mentality.
-      Na streamu je i AI jako aktivní člen chatu.
-    </p>
-  </div>
-</section>
+<script>
+const API="https://thg-backend-production.up.railway.app";
 
-<div class="sticky-live">
-  <a href="https://kick.com/thehardwareguru" target="_blank">🔴 LIVE STREAM</a>
-</div>
+async function load(){
+  const k=await fetch(API+"/api/kick-last").then(r=>r.json());
+  if(k.url){
+    document.getElementById("kickLink").href=k.url;
+    document.getElementById("kickLink").innerText="Klikni na poslední záznam streamu";
+  }
 
-<script src="live.js"></script>
-<script src="shorts.js"></script>
+  const s=await fetch(API+"/api/shorts").then(r=>r.json());
+  const box=document.getElementById("shorts");
+  s.forEach(v=>{
+    box.innerHTML+=`<a href="${v.url}" target="_blank"><img src="${v.thumb}"><p>${v.title}</p></a>`;
+  });
+}
+load();
+</script>
 
 </body>
 </html>
