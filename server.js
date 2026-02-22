@@ -32,63 +32,55 @@ async function init(){
 }
 init();
 
-// -------- SOURCES --------
-async function steam(){
- try{
-  const html=await (await fetch("https://store.steampowered.com/search/?filter=popularnew")).text();
-  const matches=[...html.matchAll(/<span class="title">(.*?)<\/span>/g)];
-  return matches.slice(0,20).map(m=>m[1]);
- }catch(e){return [];}
-}
+// ---------- NEWS SCRAPERS ----------
 
-async function twitch(){
+async function scrape(url, selector){
  try{
-  const html=await (await fetch("https://twitchtracker.com/games")).text();
+  const html=await (await fetch(url,{headers:{'user-agent':'Mozilla'}})).text();
   const $=cheerio.load(html);
   let arr=[];
-  $("a").each((i,el)=>{
+  $(selector).each((i,el)=>{
    const t=$(el).text().trim();
-   if(t.length>2&&t.length<40) arr.push(t);
+   if(t.length>4 && t.length<120) arr.push(t);
   });
-  return arr.slice(0,20);
+  return arr;
  }catch(e){return [];}
 }
 
-async function youtube(){
- try{
-  const html=await (await fetch("https://www.youtube.com/feed/gaming")).text();
-  const matches=[...html.matchAll(/"title":\{"runs":\[\{"text":"([^"]+)/g)];
-  return matches.slice(0,20).map(m=>m[1]);
- }catch(e){return [];}
-}
+async function ign(){return scrape("https://www.ign.com/games","h3")}
+async function pcgamer(){return scrape("https://www.pcgamer.com/news/","h3")}
+async function gamespot(){return scrape("https://www.gamespot.com/news/","h3")}
+async function kotaku(){return scrape("https://kotaku.com","h2")}
 
 async function reddit(){
  try{
   const html=await (await fetch("https://www.reddit.com/r/gaming/")).text();
   const matches=[...html.matchAll(/<h3.*?>(.*?)<\/h3>/g)];
-  return matches.slice(0,20).map(m=>m[1]);
+  return matches.map(m=>m[1]);
+ }catch(e){return [];}
+}
+
+async function steam(){
+ try{
+  const html=await (await fetch("https://store.steampowered.com/search/?filter=popularnew")).text();
+  const matches=[...html.matchAll(/<span class="title">(.*?)<\/span>/g)];
+  return matches.map(m=>m[1]);
  }catch(e){return [];}
 }
 
 function clean(a){
  return [...new Set(a.map(x=>x.replace(/[^a-zA-Z0-9 :'-]/g,"").trim()))]
- .filter(x=>x.length>3 && x.length<60);
+ .filter(x=>x.length>4 && x.length<80);
 }
 
-async function collect(){
- const s=await steam();
- const t=await twitch();
- const y=await youtube();
- const r=await reddit();
- return clean([...s,...t,...y,...r]).slice(0,40);
+async function collectAll(){
+ const data=await Promise.all([ign(),pcgamer(),gamespot(),kotaku(),reddit(),steam()]);
+ return clean(data.flat()).slice(0,80);
 }
 
-async function exists(title){
- const r=await q("SELECT id FROM games WHERE title=$1",[title]);
- return r.rows.length>0;
-}
+// ---------- ARTICLE TEMPLATE ----------
 
-function articleTemplate(title){
+function article(title){
  return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
@@ -107,17 +99,17 @@ h1{font-size:34px}
 <h1>${title}</h1>
 
 <div class="cta">
-<h2>🎮 Sleduj real gameplay live</h2>
+<h2>🎮 Sleduj live gameplay</h2>
 <a href="${KICK}" class="btn k">WATCH LIVE ON KICK</a>
 <a href="${YT}" class="btn y">YouTube</a>
 </div>
 
-<p>Jsem 45letý gamer co hraje tuhle hru live na streamu. Žádný tryhard, chill atmosféra, kecáme s chatem a testujeme hry v reálném čase. V chatu je i aktivní AI divák, který reaguje a dělá stream zábavnější.</p>
+<p>Jsem 45letý gamer co tohle hraje live. Chill stream, žádný tryhard. Kecáme s chatem a máme AI co reaguje přímo během streamu.</p>
 
-<p>${title} teď trenduje mezi hráči a komunitou. Pokud chceš vidět reálné hraní bez přetvářky a marketingových keců, sleduj live stream.</p>
+<p>${title} aktuálně trenduje v gaming světě. Pokud chceš vidět reálný gameplay bez bullshitu a marketingu, přijď live na stream.</p>
 
 <div class="cta">
-<h2>🔥 Přijď na live stream</h2>
+<h2>🔥 Join stream</h2>
 <a href="${KICK}" class="btn k">WATCH LIVE</a>
 <a href="${YT}" class="btn y">YouTube</a>
 </div>
@@ -125,38 +117,39 @@ h1{font-size:34px}
 </body></html>`;
 }
 
-async function generate(title){
- if(await exists(title)) return;
- const slug=slugify(title,{lower:true,strict:true});
- const html=articleTemplate(title);
- await q("INSERT INTO games(title,slug,article) VALUES($1,$2,$3)",[title,slug,html]);
+// ---------- GENERATOR ----------
+
+async function exists(title){
+ const r=await q("SELECT id FROM games WHERE title=$1",[title]);
+ return r.rows.length>0;
 }
 
-async function run(){
- const r=await q("SELECT count(*) FROM games WHERE created_at > NOW() - INTERVAL '24 hours'");
- const today=parseInt(r.rows[0]?.count||0);
- if(today>=12) return;
+async function generate(){
+ const topics=await collectAll();
 
- const topics=await collect();
- let left=12-today;
-
+ let created=0;
  for(const t of topics){
-  if(left<=0) break;
-  await generate(t);
-  left--;
+  if(created>=18) break;
+  if(await exists(t)) continue;
+
+  const slug=slugify(t,{lower:true,strict:true});
+  await q("INSERT INTO games(title,slug,article) VALUES($1,$2,$3)",[t,slug,article(t)]);
+  created++;
  }
 }
 
-setInterval(run,1000*60*60*6);
-run();
+// run every 6h
+setInterval(generate,1000*60*60*6);
+generate();
 
+// endpoints
 app.get("/cron/daily",async(req,res)=>{
- await run();
- res.send("MASTER ENGINE RUN");
+ await generate();
+ res.send("ULTIMATE NEWS ENGINE RUN");
 });
 
 app.get("/sitemap.xml",async(req,res)=>{
- const r=await q("SELECT slug,created_at FROM games ORDER BY created_at DESC LIMIT 500");
+ const r=await q("SELECT slug,created_at FROM games ORDER BY created_at DESC LIMIT 1000");
  const urls=r.rows.map(x=>`<url><loc>https://thehardwareguru.cz/top/${x.slug}</loc><lastmod>${new Date(x.created_at).toISOString()}</lastmod></url>`).join("");
  res.header("Content-Type","application/xml");
  res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
@@ -168,4 +161,4 @@ app.get("/top/:slug",async(req,res)=>{
  res.send(r.rows[0].article);
 });
 
-app.listen(PORT,"0.0.0.0",()=>console.log("MASTER ENGINE RUNNING",PORT));
+app.listen(PORT,"0.0.0.0",()=>console.log("ULTIMATE NEWS ENGINE RUNNING",PORT));
