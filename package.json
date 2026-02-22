@@ -1,6 +1,6 @@
 {
-  "name": "thg-ultimate-news-engine",
-  "version": "20.0.0",
+  "name": "thg-growth-upgrade",
+  "version": "30.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

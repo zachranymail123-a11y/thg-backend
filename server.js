@@ -32,8 +32,7 @@ async function init(){
 }
 init();
 
-// ---------- NEWS SCRAPERS ----------
-
+// -------- NEWS SOURCES --------
 async function scrape(url, selector){
  try{
   const html=await (await fetch(url,{headers:{'user-agent':'Mozilla'}})).text();
@@ -52,46 +51,34 @@ async function pcgamer(){return scrape("https://www.pcgamer.com/news/","h3")}
 async function gamespot(){return scrape("https://www.gamespot.com/news/","h3")}
 async function kotaku(){return scrape("https://kotaku.com","h2")}
 
-async function reddit(){
- try{
-  const html=await (await fetch("https://www.reddit.com/r/gaming/")).text();
-  const matches=[...html.matchAll(/<h3.*?>(.*?)<\/h3>/g)];
-  return matches.map(m=>m[1]);
- }catch(e){return [];}
-}
-
-async function steam(){
- try{
-  const html=await (await fetch("https://store.steampowered.com/search/?filter=popularnew")).text();
-  const matches=[...html.matchAll(/<span class="title">(.*?)<\/span>/g)];
-  return matches.map(m=>m[1]);
- }catch(e){return [];}
-}
-
 function clean(a){
  return [...new Set(a.map(x=>x.replace(/[^a-zA-Z0-9 :'-]/g,"").trim()))]
  .filter(x=>x.length>4 && x.length<80);
 }
 
-async function collectAll(){
- const data=await Promise.all([ign(),pcgamer(),gamespot(),kotaku(),reddit(),steam()]);
- return clean(data.flat()).slice(0,80);
+async function collect(){
+ const data=await Promise.all([ign(),pcgamer(),gamespot(),kotaku()]);
+ return clean(data.flat()).slice(0,60);
 }
 
-// ---------- ARTICLE TEMPLATE ----------
-
-function article(title){
+// -------- ARTICLE TEMPLATE --------
+function template(title,links){
  return `<!DOCTYPE html>
-<html><head>
+<html>
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
+<meta name="description" content="Real gameplay stream této hry. Sleduj live TheHardwareGuru.">
 <style>
-body{background:#0b0f14;color:#fff;font-family:Arial;padding:40px;max-width:900px;margin:auto;line-height:1.7}
-h1{font-size:34px}
-.cta{margin:40px 0;padding:25px;background:#111827;border-radius:14px;text-align:center}
-.btn{display:inline-block;margin:10px;padding:14px 26px;font-weight:bold;border-radius:8px;text-decoration:none}
-.k{background:#00ff88;color:#000}.y{background:#ff0033;color:#fff}
+body{background:#0b0f14;color:#fff;font-family:Arial;padding:40px;max-width:950px;margin:auto;line-height:1.7}
+h1{font-size:36px}
+.cta{margin:35px 0;padding:25px;background:#111827;border-radius:14px;text-align:center}
+.btn{display:inline-block;margin:10px;padding:16px 28px;font-weight:bold;border-radius:10px;text-decoration:none}
+.k{background:#00ff88;color:#000;font-size:18px}
+.y{background:#ff0033;color:#fff}
+.box{background:#111827;padding:20px;border-radius:12px;margin:25px 0}
+a{color:#00ffcc}
 </style>
 </head>
 <body>
@@ -99,53 +86,63 @@ h1{font-size:34px}
 <h1>${title}</h1>
 
 <div class="cta">
-<h2>🎮 Sleduj live gameplay</h2>
-<a href="${KICK}" class="btn k">WATCH LIVE ON KICK</a>
+<h2>🔴 Jsem live nebo budu brzy</h2>
+<a href="${KICK}" class="btn k">WATCH LIVE STREAM</a>
 <a href="${YT}" class="btn y">YouTube</a>
 </div>
 
-<p>Jsem 45letý gamer co tohle hraje live. Chill stream, žádný tryhard. Kecáme s chatem a máme AI co reaguje přímo během streamu.</p>
+<div class="box">
+Jsem 45letý gamer co hraje bez tryhardu. Chill stream, kecáme s chatem a mám AI diváka co reaguje. Pokud chceš reálný gameplay bez fake reakcí — přijď na stream.
+</div>
 
-<p>${title} aktuálně trenduje v gaming světě. Pokud chceš vidět reálný gameplay bez bullshitu a marketingu, přijď live na stream.</p>
+<p>${title} aktuálně trenduje v gaming komunitě. Sleduju novinky, testuju buildy a hraju to live. Pokud tě zajímá real gameplay a ne jen trailer — přijď na stream.</p>
 
 <div class="cta">
-<h2>🔥 Join stream</h2>
-<a href="${KICK}" class="btn k">WATCH LIVE</a>
+<h2>🎮 Sleduj live gameplay</h2>
+<a href="${KICK}" class="btn k">WATCH ON KICK</a>
 <a href="${YT}" class="btn y">YouTube</a>
+</div>
+
+<h3>🔥 Další trendy hry</h3>
+<ul>
+${links}
+</ul>
+
+<div class="cta">
+<h2>💬 Chill stream bez tryhardu</h2>
+<a href="${KICK}" class="btn k">JOIN STREAM</a>
 </div>
 
 </body></html>`;
 }
 
-// ---------- GENERATOR ----------
-
+// -------- GENERATOR --------
 async function exists(title){
  const r=await q("SELECT id FROM games WHERE title=$1",[title]);
  return r.rows.length>0;
 }
 
 async function generate(){
- const topics=await collectAll();
+ const topics=await collect();
+ const latest=await q("SELECT title,slug FROM games ORDER BY created_at DESC LIMIT 5");
 
- let created=0;
  for(const t of topics){
-  if(created>=18) break;
   if(await exists(t)) continue;
 
   const slug=slugify(t,{lower:true,strict:true});
-  await q("INSERT INTO games(title,slug,article) VALUES($1,$2,$3)",[t,slug,article(t)]);
-  created++;
+  const links=latest.rows.map(l=>`<li><a href="/top/${l.slug}">${l.title}</a></li>`).join("");
+  const html=template(t,links);
+
+  await q("INSERT INTO games(title,slug,article) VALUES($1,$2,$3)",[t,slug,html]);
  }
 }
 
-// run every 6h
 setInterval(generate,1000*60*60*6);
 generate();
 
-// endpoints
 app.get("/cron/daily",async(req,res)=>{
  await generate();
- res.send("ULTIMATE NEWS ENGINE RUN");
+ res.send("GROWTH ENGINE RUN");
 });
 
 app.get("/sitemap.xml",async(req,res)=>{
@@ -161,4 +158,4 @@ app.get("/top/:slug",async(req,res)=>{
  res.send(r.rows[0].article);
 });
 
-app.listen(PORT,"0.0.0.0",()=>console.log("ULTIMATE NEWS ENGINE RUNNING",PORT));
+app.listen(PORT,"0.0.0.0",()=>console.log("GROWTH ENGINE RUNNING",PORT));
