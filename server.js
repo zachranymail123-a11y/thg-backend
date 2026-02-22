@@ -1,15 +1,17 @@
 
-require('dotenv').config();
 const express=require('express');
 const axios=require('axios');
 const cheerio=require('cheerio');
 const cors=require('cors');
 const {Pool}=require('pg');
 const slugify=require('slugify');
+const Parser=require('rss-parser');
 
 const app=express();
 app.use(cors());
 app.use(express.json());
+const parser=new Parser();
+
 const PORT=process.env.PORT||3000;
 
 const pool=new Pool({
@@ -17,10 +19,9 @@ const pool=new Pool({
  ssl:{rejectUnauthorized:false}
 });
 
-// ===== NEW CLEAN DB AUTO INIT =====
+// ===== DB AUTO INIT =====
 async function init(){
  await pool.query(`CREATE SCHEMA IF NOT EXISTS thg;`);
-
  await pool.query(`
  CREATE TABLE IF NOT EXISTS thg.articles(
  id SERIAL PRIMARY KEY,
@@ -30,16 +31,10 @@ async function init(){
  article TEXT,
  created_at TIMESTAMP DEFAULT NOW()
  );`);
-
- await pool.query(`
- CREATE TABLE IF NOT EXISTS thg.generated_games(
- game TEXT PRIMARY KEY,
- created_at TIMESTAMP DEFAULT NOW()
- );`);
 }
 init();
 
-// ===== ROBOTS + SITEMAP =====
+// ===== SEO =====
 app.get('/robots.txt',(req,res)=>{
  res.type('text/plain').send(`User-agent: *
 Allow: /
@@ -59,42 +54,88 @@ app.get('/sitemap.xml',async(req,res)=>{
  res.type('application/xml').send(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
 });
 
-// ===== TREND FETCH =====
-async function getTrends(){
+// ===== TREND SOURCES =====
+async function getGoogleNews(){
  try{
-  const r=await axios.get("https://api.steampowered.com/ISteamChartsService/GetMostPlayedGames/v1/");
-  if(r.data?.response?.ranks){
-   return r.data.response.ranks.slice(0,30).map(x=>"SteamGame"+x.appid);
-  }
- }catch{}
- return ["GTA 6","Warzone","Fortnite","CS2","Elden Ring","Diablo 4","Starfield","Minecraft","Cyberpunk 2077","Witcher 4"];
+  const feed=await parser.parseURL("https://news.google.com/rss/search?q=video+game&hl=en-US&gl=US&ceid=US:en");
+  return feed.items.map(i=>i.title);
+ }catch{return []}
 }
 
-// ===== CRON SAFE =====
+async function getIGN(){
+ try{
+  const feed=await parser.parseURL("https://feeds.ign.com/ign/games-all");
+  return feed.items.map(i=>i.title);
+ }catch{return []}
+}
+
+async function getReddit(){
+ try{
+  const r=await axios.get("https://www.reddit.com/r/gaming/hot.json?limit=25",{headers:{'User-agent':'thg'}});
+  return r.data.data.children.map(p=>p.data.title);
+ }catch{return []}
+}
+
+async function getSteamTop(){
+ try{
+  const r=await axios.get("https://store.steampowered.com/api/featuredcategories");
+  return r.data.top_sellers.items.map(i=>i.name);
+ }catch{return []}
+}
+
+// extract game names from titles
+function extractGames(titles){
+ let games=[];
+ titles.forEach(t=>{
+  let clean=t.replace(/[^a-zA-Z0-9 :\-]/g,'');
+  let words=clean.split(" ");
+  if(words.length<2) return;
+  let name=words.slice(0,4).join(" ");
+  if(name.length>4) games.push(name.trim());
+ });
+ return games;
+}
+
+// ===== CRON =====
 app.get('/cron/daily',async(req,res)=>{
  try{
-  const trends=await getTrends();
+  let all=[];
+
+  const [gnews,ign,reddit,steam]=await Promise.all([
+   getGoogleNews(),getIGN(),getReddit(),getSteamTop()
+  ]);
+
+  all=[...gnews,...ign,...reddit,...steam];
+
+  let games=[...new Set(extractGames(all))];
+
+  // fallback if empty
+  if(games.length<10){
+   games=["GTA 6","Elden Ring","Warzone","Fortnite","CS2","Diablo 4","Starfield","Cyberpunk 2077"];
+  }
+
   let created=0;
 
-  for(let g of trends){
+  for(let g of games){
 
-   const exists=await pool.query("SELECT game FROM thg.generated_games WHERE game=$1",[g]);
+   const exists=await pool.query("SELECT game FROM thg.articles WHERE game=$1",[g]);
    if(exists.rows.length) continue;
 
-   const title=`${g} – novinky gameplay a stream`;
+   const title=`${g} – novinky, gameplay a tipy pro hráče`;
    const slug=slugify(title,{lower:true,strict:true});
 
-   const article=`<h2>${g}</h2>
-   <p>Nejnovější gameplay, tipy a novinky.</p>
-   <p>Sleduj live stream TheHardwareGuru na Kicku.</p>`;
+   const article=`
+   <h2>${g}</h2>
+   <p>Nejnovější informace, gameplay a novinky ze světa ${g}.</p>
+   <p>Sleduj live stream TheHardwareGuru pro reálný gameplay a komunitu.</p>
+   <p>YouTube: https://www.youtube.com/@TheHardwareGuru_Czech</p>
+   `;
 
-   await pool.query("INSERT INTO thg.articles(title,slug,game,article) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING",
+   await pool.query("INSERT INTO thg.articles(title,slug,game,article) VALUES($1,$2,$3,$4)",
    [title,slug,g,article]);
 
-   await pool.query("INSERT INTO thg.generated_games(game) VALUES($1) ON CONFLICT DO NOTHING",[g]);
-
    created++;
-   if(created>=6) break;
+   if(created>=8) break;
   }
 
   res.send("OK");
@@ -128,10 +169,12 @@ app.get('/top/:slug',async(req,res)=>{
  </body></html>`);
 });
 
-// ===== SHORTS =====
+// ===== API =====
 app.get('/api/shorts',async(req,res)=>{
  try{
-  const url=`https://www.googleapis.com/youtube/v3/search?key=${process.env.YOUTUBE_API_KEY}&channelId=${process.env.YOUTUBE_CHANNEL_ID}&part=snippet,id&order=date&maxResults=6`;
+  const key=process.env.YOUTUBE_API_KEY;
+  const ch=process.env.YOUTUBE_CHANNEL_ID;
+  const url=`https://www.googleapis.com/youtube/v3/search?key=${key}&channelId=${ch}&part=snippet,id&order=date&maxResults=6`;
   const r=await axios.get(url);
   const vids=r.data.items.filter(v=>v.id.videoId).slice(0,3).map(v=>({
    title:v.snippet.title,
@@ -151,4 +194,4 @@ app.get('/api/kick-last',async(req,res)=>{
  }catch{res.json({title:"Kick",thumbnail:"",url:"https://kick.com/thehardwareguru"})}
 });
 
-app.listen(PORT,()=>console.log("NEW CLEAN SYSTEM RUNNING",PORT));
+app.listen(PORT,()=>console.log("MULTISOURCE AI RUNNING",PORT));

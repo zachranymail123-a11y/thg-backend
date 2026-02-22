@@ -7,10 +7,25 @@
 <title>TheHardwareGuru</title>
 <style>
 body{margin:0;font-family:Arial;background:#05070d;color:white}
-.hero{height:90vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
-background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.9)),url('https://images.unsplash.com/photo-1542751371-adc38448a05e') center/cover;}
-h1{font-size:72px;background:linear-gradient(90deg,#00ffee,#a855f7);-webkit-background-clip:text;color:transparent}
-.btn{padding:18px 34px;border-radius:40px;text-decoration:none;font-weight:bold;margin:8px;display:inline-block}
+.hero{
+height:95vh;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+background:linear-gradient(rgba(0,0,0,.7),rgba(0,0,0,.95)),
+url('https://images.unsplash.com/photo-1534423861386-85a16f5d13fd') center/cover;
+}
+h1{
+font-size:80px;
+background:linear-gradient(90deg,#00ffee,#a855f7);
+-webkit-background-clip:text;
+color:transparent;
+margin:0;
+}
+.sub{color:#aaa;margin:20px;font-size:22px}
+.btn{padding:20px 40px;border-radius:50px;text-decoration:none;font-weight:bold;margin:10px;display:inline-block}
 .live{background:#00ffee;color:#000}
 .yt{background:#ff0033;color:#fff}
 .section{max-width:1200px;margin:auto;padding:80px 20px}
@@ -23,6 +38,7 @@ img{width:100%;border-radius:14px}
 
 <div class="hero">
 <h1>THEHARDWAREGURU</h1>
+<div class="sub">Český gaming stream • chill • AI chat • real gameplay</div>
 <a class="btn live" href="https://kick.com/thehardwareguru">SLEDOVAT LIVE</a>
 <a class="btn yt" href="https://www.youtube.com/@TheHardwareGuru_Czech">YOUTUBE</a>
 </div>
@@ -33,7 +49,7 @@ img{width:100%;border-radius:14px}
 </div>
 
 <div class="section">
-<h2>POSLEDNÍ SHORTS</h2>
+<h2>POSLEDNÍ YOUTUBE SHORTS</h2>
 <div id="shorts" class="grid"></div>
 </div>
 
@@ -42,13 +58,17 @@ const API="https://YOUR_BACKEND_URL";
 
 fetch(API+"/api/kick-last").then(r=>r.json()).then(d=>{
 document.getElementById("kick").innerHTML=
-`<img src="${d.thumbnail}"><h3>${d.title}</h3><a class="btn live" href="${d.url}">Přehrát</a>`;
+`<img src="${d.thumbnail}"><h3>${d.title}</h3>
+<a class="btn live" href="${d.url}">Přehrát</a>`;
 });
 
 fetch(API+"/api/shorts").then(r=>r.json()).then(list=>{
 document.getElementById("shorts").innerHTML=list.map(v=>
-`<div class="card"><img src="${v.thumbnail}"><h3>${v.title}</h3>
-<a class="btn yt" href="${v.url}">Otevřít</a></div>`).join("");
+`<div class="card">
+<img src="${v.thumbnail}">
+<h3>${v.title}</h3>
+<a class="btn yt" href="${v.url}">Otevřít</a>
+</div>`).join("");
 });
 </script>
 
