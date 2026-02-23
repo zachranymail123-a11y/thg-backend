@@ -1,6 +1,6 @@
 {
-  "name": "thg-czsk-authority-engine",
-  "version": "1.0.0",
+  "name": "thg-production-engine-v2",
+  "version": "2.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
