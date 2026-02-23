@@ -1,6 +1,6 @@
 {
-  "name": "final-seo-article-engine",
-  "version": "1.0.0",
+  "name": "thg-final-final-engine",
+  "version": "100.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
