@@ -1,13 +1,11 @@
 
 const express=require('express');
-const axios=require('axios');
 const cors=require('cors');
 const {Pool}=require('pg');
 const slugify=require('slugify');
 
 const app=express();
 app.use(cors());
-app.use(express.json());
 
 const PORT=process.env.PORT||3000;
 
@@ -16,10 +14,9 @@ const pool=new Pool({
  ssl:{rejectUnauthorized:false}
 });
 
-// ===== FORCE CREATE TABLE =====
-async function ensureTable(){
- await pool.query(`
- CREATE TABLE IF NOT EXISTS articles(
+// ===== INIT DB =====
+async function init(){
+ await pool.query(`CREATE TABLE IF NOT EXISTS articles(
   id SERIAL PRIMARY KEY,
   title TEXT,
   slug TEXT UNIQUE,
@@ -28,134 +25,93 @@ async function ensureTable(){
   created_at TIMESTAMP DEFAULT NOW()
  );`);
 }
-ensureTable();
-
-// ===== HARD DB RESET =====
-app.get('/db-fix', async(req,res)=>{
- try{
-  await pool.query(`DROP TABLE IF EXISTS articles;`);
-  await pool.query(`
-  CREATE TABLE articles(
-   id SERIAL PRIMARY KEY,
-   title TEXT,
-   slug TEXT UNIQUE,
-   game TEXT UNIQUE,
-   content TEXT,
-   created_at TIMESTAMP DEFAULT NOW()
-  );`);
-  res.send("DB RESET OK");
- }catch(e){
-  res.send("DB RESET ERROR: "+e.message);
- }
-});
-
-// ===== DB TEST =====
-app.get('/db-test', async(req,res)=>{
- try{
-  const r=await pool.query("SELECT COUNT(*) FROM articles");
-  res.send("DB OK. rows: "+r.rows[0].count);
- }catch(e){
-  res.send("DB ERROR: "+e.message);
- }
-});
+init();
 
 // ===== SITEMAP =====
-app.get('/sitemap.xml', async(req,res)=>{
- try{
-  const r=await pool.query("SELECT slug FROM articles ORDER BY created_at DESC");
-  const urls=r.rows.map(x=>`<url><loc>https://thehardwareguru.cz/top/${x.slug}</loc></url>`).join("");
-  res.type('application/xml').send(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
- }catch(e){
-  res.send("SITEMAP ERROR: "+e.message);
- }
+app.get('/sitemap.xml',async(req,res)=>{
+ const r=await pool.query("SELECT slug FROM articles ORDER BY created_at DESC");
+ const urls=r.rows.map(x=>`<url><loc>https://thehardwareguru.cz/top/${x.slug}</loc></url>`).join("");
+ res.type('application/xml').send(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
 });
 
-// ===== GAME SOURCE =====
-async function getGames(){
- try{
-  const r=await axios.get("https://api.steampowered.com/ISteamChartsService/GetMostPlayedGames/v1/");
-  const ids=r.data.response.ranks.slice(0,15).map(g=>g.appid);
-  let names=[];
-  for(let id of ids){
-   try{
-    const d=await axios.get(`https://store.steampowered.com/api/appdetails?appids=${id}`);
-    const data=d.data[id];
-    if(data.success && data.data.type==="game"){
-     names.push(data.data.name);
-    }
-   }catch{}
-  }
-  if(names.length) return names;
- }catch{}
- return ["GTA 6","Warzone","CS2","Fortnite","Elden Ring","Diablo 4"];
+// ===== DEMO ARTICLE GENERATOR =====
+app.get('/cron/demo',async(req,res)=>{
+ const games=["GTA 6","Warzone","CS2","Fortnite","Elden Ring","Diablo 4"];
+ let created=0;
+
+ for(let g of games){
+  const exists=await pool.query("SELECT id FROM articles WHERE game=$1",[g]);
+  if(exists.rows.length) continue;
+
+  const title=`${g} – novinky, gameplay a český stream`;
+  const slug=slugify(title,{lower:true,strict:true});
+  const content=`<p>Aktuální informace o hře ${g}. Sleduj live stream TheHardwareGuru a zapoj se do komunity.</p>`;
+
+  await pool.query(
+  "INSERT INTO articles(title,slug,game,content) VALUES($1,$2,$3,$4)",
+  [title,slug,g,content]);
+
+  created++;
+ }
+ res.send("created "+created);
+});
+
+// ===== ARTICLE PAGE SEO MAX =====
+app.get('/top/:slug',async(req,res)=>{
+ const r=await pool.query("SELECT * FROM articles WHERE slug=$1",[req.params.slug]);
+ if(!r.rows.length) return res.send("Not found");
+
+ const a=r.rows[0];
+ const canonical=`https://thehardwareguru.cz/top/${a.slug}`;
+ const desc=`${a.game} – aktuální novinky, gameplay, tipy a český stream TheHardwareGuru.`;
+ const date=new Date(a.created_at||Date.now()).toISOString();
+
+ res.send(`
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>${a.title}</title>
+
+<link rel="canonical" href="${canonical}" />
+<meta name="robots" content="index, follow"/>
+<meta name="description" content="${desc}"/>
+
+<meta property="og:title" content="${a.title}"/>
+<meta property="og:description" content="${desc}"/>
+<meta property="og:type" content="article"/>
+<meta property="og:url" content="${canonical}"/>
+<meta property="og:image" content="https://thehardwareguru.cz/og.jpg"/>
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${a.title}">
+<meta name="twitter:description" content="${desc}">
+<meta name="twitter:image" content="https://thehardwareguru.cz/og.jpg">
+
+<script type="application/ld+json">
+{
+ "@context":"https://schema.org",
+ "@type":"Article",
+ "headline":"${a.title}",
+ "datePublished":"${date}",
+ "author":{"@type":"Person","name":"TheHardwareGuru"},
+ "publisher":{"@type":"Organization","name":"TheHardwareGuru"},
+ "mainEntityOfPage":{"@type":"WebPage","@id":"${canonical}"}
 }
+</script>
 
-// ===== CRON =====
-app.get('/cron/daily', async(req,res)=>{
- try{
-  const games=await getGames();
-  let created=0;
-  let log=[];
-
-  for(let g of games){
-
-   const exists=await pool.query("SELECT id FROM articles WHERE game=$1",[g]);
-   if(exists.rows.length){log.push("skip "+g);continue;}
-
-   const title=`${g} – novinky, gameplay a stream`;
-   const slug=slugify(title,{lower:true,strict:true});
-
-   const content=`<h2>${g}</h2>
-   <p>Aktuální novinky a gameplay ze světa ${g}.</p>
-   <p>Sleduj TheHardwareGuru live.</p>`;
-
-   await pool.query(
-   "INSERT INTO articles(title,slug,game,content) VALUES($1,$2,$3,$4)",
-   [title,slug,g,content]
-   );
-
-   created++;
-   log.push("created "+g);
-   if(created>=6) break;
-  }
-
-  res.json({status:"OK",created,log});
-
- }catch(e){
-  res.send("CRON ERROR: "+e.message);
- }
+</head>
+<body style="background:#05070d;color:white;font-family:Arial;max-width:900px;margin:auto;padding:40px">
+<h1>${a.title}</h1>
+${a.content}
+<br><br>
+<a href="https://kick.com/thehardwareguru">KICK</a> |
+<a href="https://www.youtube.com/@TheHardwareGuru_Czech">YOUTUBE</a> |
+<a href="https://discord.com/invite/n7xThr8">DISCORD</a> |
+<a href="https://www.instagram.com/thehardwareguru_czech/">INSTAGRAM</a>
+</body>
+</html>
+`);
 });
 
-// ===== ARTICLE =====
-app.get('/top/:slug', async(req,res)=>{
- try{
-  const r=await pool.query("SELECT * FROM articles WHERE slug=$1",[req.params.slug]);
-  if(!r.rows.length) return res.send("Not found");
-
-  const a=r.rows[0];
-  const canonical=`https://thehardwareguru.cz/top/${a.slug}`;
-
-  res.send(`
-  <html>
-  <head>
-  <meta charset="UTF-8">
-  <title>${a.title}</title>
-  <link rel="canonical" href="${canonical}" />
-  <meta name="robots" content="index, follow" />
-  </head>
-  <body style="background:#05070d;color:white;font-family:Arial;max-width:900px;margin:auto;padding:40px">
-  <h1>${a.title}</h1>
-  ${a.content}
-  <br><br>
-  <a href="https://kick.com/thehardwareguru">KICK</a> |
-  <a href="https://www.youtube.com/@TheHardwareGuru_Czech">YT</a> |
-  <a href="https://discord.com/invite/n7xThr8">DISCORD</a>
-  </body></html>
-  `);
-
- }catch(e){
-  res.send("ARTICLE ERROR: "+e.message);
- }
-});
-
-app.listen(PORT,()=>console.log("FINAL ENGINE WITH DB FIX RUNNING",PORT));
+app.listen(PORT,()=>console.log("FINAL SEO ARTICLE ENGINE RUNNING",PORT));
