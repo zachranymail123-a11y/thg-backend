@@ -16,16 +16,16 @@ const pool=new Pool({
  ssl:{rejectUnauthorized:false}
 });
 
-// ===== NEW CLEAN PRODUCTION TABLES =====
+// ===== SAFE NEW TABLES =====
 async function init(){
  await pool.query(`
- CREATE TABLE IF NOT EXISTS games_seen_v2(
+ CREATE TABLE IF NOT EXISTS games_seen_v3(
   id SERIAL PRIMARY KEY,
   name TEXT UNIQUE
  );`);
 
  await pool.query(`
- CREATE TABLE IF NOT EXISTS articles_v2(
+ CREATE TABLE IF NOT EXISTS articles_v3(
   id SERIAL PRIMARY KEY,
   title TEXT,
   slug TEXT UNIQUE,
@@ -34,37 +34,34 @@ async function init(){
   created_at TIMESTAMP DEFAULT NOW()
  );`);
 
- console.log("PRODUCTION DB READY");
+ console.log("DB READY STABLE");
 }
 init();
 
 // ===== SITEMAP =====
 app.get('/sitemap.xml',async(req,res)=>{
- const r=await pool.query("SELECT slug FROM articles_v2 ORDER BY created_at DESC");
- const urls=r.rows.map(x=>`<url><loc>https://thehardwareguru.cz/top/${x.slug}</loc></url>`).join("");
- res.type('application/xml').send(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
+ try{
+  const r=await pool.query("SELECT slug FROM articles_v3 ORDER BY created_at DESC");
+  const urls=r.rows.map(x=>`<url><loc>https://thehardwareguru.cz/top/${x.slug}</loc></url>`).join("");
+  res.type('application/xml').send(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`);
+ }catch(e){
+  res.send("sitemap error "+e.message);
+ }
 });
 
-// ===== REAL MULTI SOURCE =====
+// ===== TREND SOURCES =====
 async function getTrends(){
- let list=[];
-
- try{
-  const google=["GTA 6","Warzone","CS2","Fortnite","Minecraft","Elden Ring","Diablo 4","Cyberpunk 2077","Palworld","Tarkov","PUBG","League of Legends","Helldivers 2","Baldurs Gate 3"];
-  list.push(...google);
- }catch{}
-
- try{
-  const yt=["GTA 6","Warzone","CS2","Fortnite","Rust","DayZ","Dota 2","Valorant"];
-  list.push(...yt);
- }catch{}
-
- list=[...new Set(list)];
- return list.slice(0,30);
+ let list=[
+ "GTA 6","Warzone","Counter-Strike 2","Fortnite","Minecraft","Elden Ring",
+ "Diablo 4","Cyberpunk 2077","Palworld","Escape from Tarkov","PUBG",
+ "League of Legends","Helldivers 2","Baldurs Gate 3","DayZ","Rust",
+ "Valorant","Dota 2","Apex Legends"
+ ];
+ return [...new Set(list)];
 }
 
-// ===== CRON DAILY PRODUCTION =====
-app.get('/cron/daily',async(req,res)=>{
+// ===== CRON (GET + POST + MANUAL RUN SAFE) =====
+app.all('/cron/daily',async(req,res)=>{
  try{
   const trends=await getTrends();
   let created=0;
@@ -72,10 +69,10 @@ app.get('/cron/daily',async(req,res)=>{
 
   for(let game of trends){
 
-   const exists=await pool.query("SELECT id FROM games_seen_v2 WHERE name=$1",[game]);
+   const exists=await pool.query("SELECT id FROM games_seen_v3 WHERE name=$1",[game]);
    if(exists.rows.length){log.push("skip "+game);continue;}
 
-   await pool.query("INSERT INTO games_seen_v2(name) VALUES($1)",[game]);
+   await pool.query("INSERT INTO games_seen_v3(name) VALUES($1) ON CONFLICT DO NOTHING",[game]);
 
    const title=`${game} – novinky, gameplay a CZ/SK komunita`;
    const slug=slugify(title,{lower:true,strict:true});
@@ -84,22 +81,20 @@ app.get('/cron/daily',async(req,res)=>{
    <h2>${game}</h2>
    <p>${game} patří mezi aktuálně trendující hry v CZ/SK komunitě.</p>
    <p>Sleduj živý stream TheHardwareGuru na Kicku.</p>
-   <p>Na streamu je aktivní AI divák reagující na hru i chat.</p>
+   <p>Na streamu je aktivní AI divák který reaguje na hru i chat.</p>
    `;
 
    await pool.query(
-   "INSERT INTO articles_v2(title,slug,game,content) VALUES($1,$2,$3,$4)",
+   "INSERT INTO articles_v3(title,slug,game,content) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING",
    [title,slug,game,content]
    );
 
    created++;
    log.push("created "+game);
-
    if(created>=12) break;
   }
 
   res.json({status:"OK",created,log});
-
  }catch(e){
   res.send("CRON ERROR: "+e.message);
  }
@@ -107,14 +102,15 @@ app.get('/cron/daily',async(req,res)=>{
 
 // ===== ARTICLE PAGE =====
 app.get('/top/:slug',async(req,res)=>{
- const r=await pool.query("SELECT * FROM articles_v2 WHERE slug=$1",[req.params.slug]);
- if(!r.rows.length) return res.send("Not found");
+ try{
+  const r=await pool.query("SELECT * FROM articles_v3 WHERE slug=$1",[req.params.slug]);
+  if(!r.rows.length) return res.send("Not found");
 
- const a=r.rows[0];
- const canonical=`https://thehardwareguru.cz/top/${a.slug}`;
- const desc=`${a.game} – aktuální novinky, gameplay a český stream TheHardwareGuru.`;
+  const a=r.rows[0];
+  const canonical=`https://thehardwareguru.cz/top/${a.slug}`;
+  const desc=`${a.game} – aktuální novinky, gameplay a český stream TheHardwareGuru.`;
 
- res.send(`
+  res.send(`
 <html>
 <head>
 <meta charset="UTF-8">
@@ -151,6 +147,9 @@ ${a.content}
 </body>
 </html>
 `);
+ }catch(e){
+  res.send("article error "+e.message);
+ }
 });
 
-app.listen(PORT,()=>console.log("THG PRODUCTION ENGINE V2 RUNNING",PORT));
+app.listen(PORT,()=>console.log("THG STABLE ENGINE RUNNING",PORT));
